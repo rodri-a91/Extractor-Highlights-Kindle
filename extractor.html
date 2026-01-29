@@ -118,7 +118,6 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(source, 'text/html');
 
-        // Buscamos los ID exactos
         const nodes = doc.querySelectorAll('#highlight');
         
         if (nodes.length === 0) {
@@ -128,14 +127,11 @@
         } else {
             let count = 0;
             nodes.forEach(node => {
-                // 1. Obtenemos el texto crudo
+
                 let text = node.textContent;
 
-                // 2. LIMPIEZA: Eliminamos patrones como [1], [15], etc.
-                // La expresión /\[\d+\]/g busca: corchete, dígitos, corchete.
                 text = text.replace(/\[\d+\]/g, '');
 
-                // 3. Quitamos espacios extra que hayan podido quedar
                 text = text.trim();
 
                 if (text.length > 0) {
