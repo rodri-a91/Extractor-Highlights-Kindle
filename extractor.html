@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extractor de Notas Kindle</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        h1 { margin-top: 0; color: #2c3e50; font-size: 24px; }
+        
+        .input-group { margin-bottom: 20px; }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            box-sizing: border-box; 
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-extract { background-color: #3498db; color: white; }
+        .btn-extract:hover { background-color: #2980b9; }
+
+        .btn-copy { background-color: #2ecc71; color: white; display: none; }
+        .btn-copy:hover { background-color: #27ae60; }
+        
+        .result-area {
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+
+        ul { list-style-type: none; padding: 0; }
+        
+        li {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 8px;
+            padding: 12px;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #2c3e50;
+        }
+        
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Extractor de Highlights</h1>
+    <p style="font-size: 0.9em; color: #666;">Pega el código HTML completo aquí abajo:</p>
+    
+    <div class="input-group">
+        <textarea id="sourceCode" placeholder="Pegar código HTML..."></textarea>
+    </div>
+    
+    <div class="buttons">
+        <button class="btn-extract" onclick="extractText()">Extraer Texto</button>
+        <button class="btn-copy" id="btnCopy" onclick="copyToClipboard()">Copiar Todo</button>
+    </div>
+
+    <div class="result-area">
+        <div id="status" style="margin-bottom:10px; font-weight:bold; display:none;"></div>
+        <ul id="outputList"></ul>
+    </div>
+</div>
+
+<script>
+    function extractText() {
+        const source = document.getElementById('sourceCode').value;
+        const list = document.getElementById('outputList');
+        const status = document.getElementById('status');
+        const btnCopy = document.getElementById('btnCopy');
+        
+        list.innerHTML = '';
+        status.style.display = 'none';
+        btnCopy.style.display = 'none';
+        
+        if (!source.trim()) {
+            alert("Por favor, pega el código fuente primero.");
+            return;
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(source, 'text/html');
+
+        // Buscamos los ID exactos
+        const nodes = doc.querySelectorAll('#highlight');
+        
+        if (nodes.length === 0) {
+            status.textContent = "No se encontraron fragmentos (id='highlight').";
+            status.style.color = "red";
+            status.style.display = 'block';
+        } else {
+            let count = 0;
+            nodes.forEach(node => {
+                // 1. Obtenemos el texto crudo
+                let text = node.textContent;
+
+                // 2. LIMPIEZA: Eliminamos patrones como [1], [15], etc.
+                // La expresión /\[\d+\]/g busca: corchete, dígitos, corchete.
+                text = text.replace(/\[\d+\]/g, '');
+
+                // 3. Quitamos espacios extra que hayan podido quedar
+                text = text.trim();
+
+                if (text.length > 0) {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    list.appendChild(li);
+                    count++;
+                }
+            });
+            
+            status.textContent = `Se han extraído ${count} fragmentos limpios.`;
+            status.style.color = "#27ae60";
+            status.style.display = 'block';
+            
+            if (count > 0) {
+                btnCopy.style.display = 'inline-block';
+            }
+        }
+    }
+
+    function copyToClipboard() {
+        const listItems = document.querySelectorAll('#outputList li');
+        let allText = "";
+        listItems.forEach(li => {
+            allText += "- " + li.textContent + "\n";
+        });
+        
+        navigator.clipboard.writeText(allText).then(() => {
+            const originalText = document.getElementById('btnCopy').textContent;
+            document.getElementById('btnCopy').textContent = "¡Copiado!";
+            setTimeout(() => {
+                document.getElementById('btnCopy').textContent = originalText;
+            }, 2000);
+        });
+    }
+</script>
+
+</body>
+</html>
