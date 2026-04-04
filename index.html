@@ -379,6 +379,103 @@
       width: auto;
     }
 
+    /* ── Cover edit panel ── */
+    .cover-edit-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .cover-edit-panel.active { display: flex; }
+
+    .cover-edit-panel h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .cover-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--aged);
+      padding-bottom: 0;
+    }
+
+    .cover-tab {
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--muted);
+      cursor: pointer;
+      background: transparent;
+      margin-bottom: -1px;
+    }
+
+    .cover-tab.active {
+      background: var(--surface);
+      border-color: var(--aged);
+      border-bottom-color: var(--surface);
+      color: var(--ink);
+    }
+
+    .cover-tab-content { display: none; }
+    .cover-tab-content.active { display: flex; flex-direction: column; gap: 10px; }
+
+    .cover-url-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cover-url-row input { flex: 1; min-width: 200px; }
+
+    .cover-preview {
+      width: 80px;
+      height: 120px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      border: 1px solid var(--aged);
+      display: none;
+    }
+
+    .cover-preview.visible { display: block; }
+
+    .cover-upload-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border: 1px dashed var(--aged);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--muted);
+      transition: border-color 0.15s, color 0.15s;
+      width: fit-content;
+    }
+
+    .cover-upload-label:hover { border-color: var(--amber); color: var(--ink); }
+
+    .cover-edit-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-cover-reset {
+      font-size: 13px;
+      padding: 6px 14px;
+      color: var(--muted);
+    }
+
     /* ── Book view ── */
     .book-view-header {
       margin-bottom: 20px;
@@ -516,7 +613,7 @@
     <div class="book-view-header">
       <div class="title-row">
         <div class="book-view-title" id="bookViewTitle"></div>
-        <button class="btn-sm btn-edit-title" onclick="startEditTitle()">Editar título</button>
+        <button class="btn-sm btn-edit-title" onclick="startEditTitle()">Editar</button>
       </div>
       <div class="title-edit-form" id="titleEditForm">
         <input type="text" id="titleEditInput" placeholder="Título del libro">
@@ -525,8 +622,43 @@
       </div>
       <div class="book-view-meta" id="bookViewMeta"></div>
     </div>
+
+    <!-- Cover edit panel -->
+    <div class="cover-edit-panel" id="coverEditPanel">
+      <h4>Cambiar portada</h4>
+      <div class="cover-tabs">
+        <button class="cover-tab active" onclick="switchCoverTab('url', this)">URL</button>
+        <button class="cover-tab" onclick="switchCoverTab('file', this)">Archivo local</button>
+      </div>
+
+      <div class="cover-tab-content active" id="coverTabUrl">
+        <div class="cover-url-row">
+          <input type="text" id="coverUrlInput" placeholder="https://ejemplo.com/portada.jpg" oninput="previewCoverUrl()">
+          <img id="coverUrlPreview" class="cover-preview" alt="Vista previa">
+        </div>
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" onclick="saveCoverUrl()">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset" onclick="resetCover()">Buscar automáticamente</button>
+          <button class="btn-sm" onclick="closeCoverPanel()">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="cover-tab-content" id="coverTabFile">
+        <label class="cover-upload-label" for="coverFileInput">
+          <span>📁</span> Seleccionar imagen
+        </label>
+        <input type="file" id="coverFileInput" accept="image/*" onchange="previewCoverFile(event)">
+        <img id="coverFilePreview" class="cover-preview" alt="Vista previa">
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" onclick="saveCoverFile()">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset" onclick="resetCover()">Buscar automáticamente</button>
+          <button class="btn-sm" onclick="closeCoverPanel()">Cancelar</button>
+        </div>
+      </div>
+    </div>
     <div class="book-actions">
       <button onclick="copyHighlights()">Copiar todo</button>
+      <button onclick="openCoverPanel()">Cambiar portada</button>
       <button class="btn-danger" onclick="deleteBook()">Eliminar libro</button>
     </div>
     <div class="highlights-list" id="highlightsList"></div>
@@ -654,32 +786,31 @@
     document.getElementById('jsonFileInput').value = '';
   }
 
-  /* ── Cover fetching ── */
-  const coverCache = {};
-
+  /* ── Cover fetching (Google Books) ── */
   async function fetchCover(key, title) {
-    if (library[key].coverUrl !== undefined) return; // already tried
+    if (library[key].coverUrl !== undefined) return;
 
-    const q = encodeURIComponent(title);
+    const q = encodeURIComponent('intitle:' + title);
     try {
-      const res = await fetch(`https://openlibrary.org/search.json?title=${q}&limit=1&fields=cover_i`);
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`);
       const data = await res.json();
-      const coverId = data?.docs?.[0]?.cover_i;
-      library[key].coverUrl = coverId
-        ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
-        : null;
+      const info = data?.items?.[0]?.volumeInfo;
+      let url = info?.imageLinks?.extraLarge
+             || info?.imageLinks?.large
+             || info?.imageLinks?.medium
+             || info?.imageLinks?.thumbnail
+             || null;
+      if (url) url = url.replace('http://', 'https://').replace(/&zoom=\d/, '&zoom=0');
+      library[key].coverUrl = url;
       saveLibrary();
     } catch (e) {
       library[key].coverUrl = null;
     }
 
-    // Update the card's img if it's visible
     const img = document.querySelector(`[data-key="${key}"] img`);
-    const ph  = document.querySelector(`[data-key="${key}"] .book-cover-placeholder`);
     if (img && library[key].coverUrl) {
       img.src = library[key].coverUrl;
-    } else if (ph && !library[key].coverUrl) {
-      // placeholder stays
+      img.onload = () => img.classList.add('loaded');
     }
   }
 
@@ -755,6 +886,7 @@
 
   function cancelEditTitle() {
     document.getElementById('titleEditForm').classList.remove('active');
+    closeCoverPanel();
   }
 
   function saveTitle() {
@@ -767,6 +899,101 @@
     saveLibrary();
     document.getElementById('bookViewTitle').textContent = newTitle;
     document.getElementById('titleEditForm').classList.remove('active');
+  }
+
+  /* ── Cover panel ── */
+  function openCoverPanel() {
+    const panel = document.getElementById('coverEditPanel');
+    panel.classList.add('active');
+    // pre-fill URL if there's one already
+    document.getElementById('coverUrlInput').value = library[currentBook].coverUrl || '';
+    document.getElementById('coverUrlPreview').classList.remove('visible');
+    document.getElementById('coverFilePreview').classList.remove('visible');
+    if (library[currentBook].coverUrl) {
+      const p = document.getElementById('coverUrlPreview');
+      p.src = library[currentBook].coverUrl;
+      p.classList.add('visible');
+    }
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeCoverPanel() {
+    document.getElementById('coverEditPanel').classList.remove('active');
+    document.getElementById('coverUrlInput').value = '';
+    document.getElementById('coverUrlPreview').classList.remove('visible');
+    document.getElementById('coverFilePreview').classList.remove('visible');
+    document.getElementById('coverFileInput').value = '';
+  }
+
+  function switchCoverTab(tab, btn) {
+    document.querySelectorAll('.cover-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.cover-tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('coverTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  }
+
+  function previewCoverUrl() {
+    const url = document.getElementById('coverUrlInput').value.trim();
+    const preview = document.getElementById('coverUrlPreview');
+    if (url) {
+      preview.src = url;
+      preview.onload = () => preview.classList.add('visible');
+      preview.onerror = () => preview.classList.remove('visible');
+    } else {
+      preview.classList.remove('visible');
+    }
+  }
+
+  function saveCoverUrl() {
+    const url = document.getElementById('coverUrlInput').value.trim();
+    if (!url) return;
+    library[currentBook].coverUrl = url;
+    saveLibrary();
+    updateCardCover(currentBook, url);
+    closeCoverPanel();
+  }
+
+  function previewCoverFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const preview = document.getElementById('coverFilePreview');
+      preview.src = ev.target.result;
+      preview.classList.add('visible');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function saveCoverFile() {
+    const file = document.getElementById('coverFileInput').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      library[currentBook].coverUrl = ev.target.result; // base64
+      saveLibrary();
+      updateCardCover(currentBook, ev.target.result);
+      closeCoverPanel();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetCover() {
+    delete library[currentBook].coverUrl;
+    saveLibrary();
+    fetchCover(currentBook, library[currentBook].title);
+    closeCoverPanel();
+  }
+
+  function updateCardCover(key, url) {
+    // Update the card in the library grid if rendered
+    const card = document.querySelector(`[data-key="${key}"]`);
+    if (card) {
+      const img = card.querySelector('img');
+      const ph  = card.querySelector('.book-cover-placeholder');
+      if (img) { img.src = url; img.style.display = ''; img.onload = () => img.classList.add('loaded'); }
+      if (ph)  { ph.style.display = 'none'; }
+    }
   }
 
   /* ── Open book ── */
