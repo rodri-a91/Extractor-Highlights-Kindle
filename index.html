@@ -314,6 +314,113 @@
       font-size: 17px;
     }
 
+    /* ── View toggle ── */
+    .lib-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .lib-count {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      border: none;
+      border-radius: 0;
+      padding: 6px 12px;
+      font-size: 15px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .view-toggle button:hover { background: var(--aged); color: var(--ink); }
+    .view-toggle button.active { background: var(--aged); color: var(--ink); }
+    .view-toggle button + button { border-left: 1px solid var(--aged); }
+
+    /* ── List view ── */
+    .library-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--aged);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: var(--aged); }
+
+    .list-cover {
+      width: 36px;
+      height: 54px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--aged);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .list-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .list-cover img.loaded { opacity: 1; }
+
+    .list-cover-ph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      background: linear-gradient(145deg, var(--aged) 0%, var(--surface) 100%);
+    }
+
+    .list-title {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .list-meta {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .list-arrow {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
     /* ── Import panel ── */
     .import-block {
       background: var(--surface);
@@ -581,7 +688,14 @@
        VIEW: Library
   ══════════════════════════════ -->
   <div class="view active" id="libView">
-    <div class="library-grid" id="libraryGrid"></div>
+    <div class="lib-toolbar">
+      <span class="lib-count" id="libCount"></span>
+      <div class="view-toggle">
+        <button id="btnGallery" class="active" onclick="setLibView('gallery')" title="Galería">⊞</button>
+        <button id="btnList"    onclick="setLibView('list')"    title="Lista">≡</button>
+      </div>
+    </div>
+    <div id="libraryGrid"></div>
   </div>
 
   <!-- ══════════════════════════════
@@ -815,35 +929,66 @@
   }
 
   /* ── Render library ── */
+  let currentLibView = 'gallery';
+
+  function setLibView(mode) {
+    currentLibView = mode;
+    try { localStorage.setItem('kindleLibView', mode); } catch(e) {}
+    document.getElementById('btnGallery').classList.toggle('active', mode === 'gallery');
+    document.getElementById('btnList').classList.toggle('active', mode === 'list');
+    renderLibrary();
+  }
+
   function renderLibrary() {
-    const grid = document.getElementById('libraryGrid');
+    const container = document.getElementById('libraryGrid');
     const keys = Object.keys(library);
+    const countEl = document.getElementById('libCount');
+    if (countEl) countEl.textContent = keys.length ? `${keys.length} libro${keys.length !== 1 ? 's' : ''}` : '';
+
     if (keys.length === 0) {
-      grid.innerHTML = '<div class="empty-state">Aún no hay libros importados</div>';
+      container.className = '';
+      container.innerHTML = '<div class="empty-state">Aún no hay libros importados</div>';
       return;
     }
 
-    grid.innerHTML = keys.map(k => {
-      const b = library[k];
-      const n = b.highlights.length;
-      const hasUrl = b.coverUrl;
-
-      const imgTag = hasUrl
-        ? `<img src="${hasUrl}" alt="${b.title}" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
-        : `<img style="display:none">`;
-
-      const placeholder = !hasUrl
-        ? `<div class="book-cover-placeholder"><span>📖</span><p>${b.title}</p></div>`
-        : `<div class="book-cover-placeholder" style="display:none"></div>`;
-
-      return `<div class="book-card" data-key="${k}" onclick="openBook('${k}')">
-        <div class="book-cover">${imgTag}${placeholder}</div>
-        <div class="book-card-info">
-          <div class="book-card-title">${b.title}</div>
-          <div class="book-card-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
-        </div>
-      </div>`;
-    }).join('');
+    if (currentLibView === 'list') {
+      container.className = 'library-list';
+      container.innerHTML = keys.map(k => {
+        const b = library[k];
+        const n = b.highlights.length;
+        const hasUrl = b.coverUrl;
+        const imgTag = hasUrl
+          ? `<img src="${hasUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
+          : `<img style="display:none">`;
+        const ph = !hasUrl ? `<div class="list-cover-ph">📖</div>` : '';
+        return `<div class="list-item" data-key="${k}" onclick="openBook('${k}')">
+          <div class="list-cover">${imgTag}${ph}</div>
+          <div class="list-title">${b.title}</div>
+          <div class="list-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
+          <div class="list-arrow">›</div>
+        </div>`;
+      }).join('');
+    } else {
+      container.className = 'library-grid';
+      container.innerHTML = keys.map(k => {
+        const b = library[k];
+        const n = b.highlights.length;
+        const hasUrl = b.coverUrl;
+        const imgTag = hasUrl
+          ? `<img src="${hasUrl}" alt="${b.title}" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
+          : `<img style="display:none">`;
+        const placeholder = !hasUrl
+          ? `<div class="book-cover-placeholder"><span>📖</span><p>${b.title}</p></div>`
+          : `<div class="book-cover-placeholder" style="display:none"></div>`;
+        return `<div class="book-card" data-key="${k}" onclick="openBook('${k}')">
+          <div class="book-cover">${imgTag}${placeholder}</div>
+          <div class="book-card-info">
+            <div class="book-card-title">${b.title}</div>
+            <div class="book-card-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
 
     // Fetch covers for books that haven't been looked up yet
     keys.forEach(k => {
@@ -1096,6 +1241,14 @@
   /* ── Init ── */
   initTheme();
   loadLibrary();
+  try {
+    const savedView = localStorage.getItem('kindleLibView');
+    if (savedView) {
+      currentLibView = savedView;
+      document.getElementById('btnGallery').classList.toggle('active', savedView === 'gallery');
+      document.getElementById('btnList').classList.toggle('active', savedView === 'list');
+    }
+  } catch(e) {}
   renderLibrary();
 </script>
 </body>
