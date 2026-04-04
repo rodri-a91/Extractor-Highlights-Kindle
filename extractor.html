@@ -1,173 +1,645 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extractor de Notas Kindle</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-            padding: 40px;
-            color: #333;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 800px;
-        }
-        h1 { margin-top: 0; color: #2c3e50; font-size: 24px; }
-        
-        .input-group { margin-bottom: 20px; }
-        
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-            resize: vertical;
-            box-sizing: border-box; 
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Highlights</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .buttons {
-            display: flex;
-            gap: 10px;
-        }
+    :root {
+      --ink: #1a1410;
+      --paper: #f7f3ed;
+      --aged: #ddd8ce;
+      --surface: #ffffff;
+      --amber: #c8691a;
+      --amber-dim: #e8a86a;
+      --muted: #8a7f72;
+      --success-bg: #edf7f0;
+      --success-fg: #2d6a4f;
+      --warn-bg: #fef8ec;
+      --warn-fg: #92600a;
+      --danger-bg: #fdf0f0;
+      --danger-fg: #9b3a3a;
+      --danger-border: #f5c6c6;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
 
-        button {
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ink: #e8e0d4;
+        --paper: #1a1814;
+        --aged: #2e2a25;
+        --surface: #242019;
+        --amber: #e8923a;
+        --amber-dim: #a86318;
+        --muted: #7a7068;
+        --success-bg: #0f2a1a;
+        --success-fg: #6fcf97;
+        --warn-bg: #2a1f08;
+        --warn-fg: #f0a050;
+        --danger-bg: #2a0f0f;
+        --danger-fg: #f08080;
+        --danger-border: #5a2020;
+      }
+    }
 
-        .btn-extract { background-color: #3498db; color: white; }
-        .btn-extract:hover { background-color: #2980b9; }
+    html { scroll-behavior: smooth; }
 
-        .btn-copy { background-color: #2ecc71; color: white; display: none; }
-        .btn-copy:hover { background-color: #27ae60; }
-        
-        .result-area {
-            margin-top: 20px;
-            border-top: 2px solid #eee;
-            padding-top: 20px;
-        }
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
 
-        ul { list-style-type: none; padding: 0; }
-        
-        li {
-            background: #fff;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 8px;
-            padding: 12px;
-            font-size: 16px;
-            line-height: 1.5;
-            color: #2c3e50;
-        }
-        
-    </style>
+    /* ── Layout ── */
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--aged);
+      flex-wrap: wrap;
+    }
+
+    .site-title {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .site-title span {
+      color: var(--amber);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Buttons ── */
+    button, .file-label {
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--aged);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      display: inline-block;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    button:hover, .file-label:hover { background: var(--aged); }
+    button:active, .file-label:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #b05a14; border-color: #b05a14; }
+
+    .btn-danger {
+      color: var(--danger-fg);
+      border-color: var(--danger-border);
+    }
+    .btn-danger:hover { background: var(--danger-bg); }
+
+    .btn-sm {
+      font-size: 13px;
+      padding: 6px 14px;
+    }
+
+    input[type="file"] { display: none; }
+
+    /* ── Inputs ── */
+    input[type="text"], textarea, select {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 10px 12px;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(200, 105, 26, 0.12);
+    }
+
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.8; }
+
+    textarea { resize: vertical; height: 130px; line-height: 1.5; }
+
+    /* ── Status messages ── */
+    .status {
+      display: none;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      margin-top: 12px;
+    }
+    .status.ok  { display: block; background: var(--success-bg); color: var(--success-fg); }
+    .status.err { display: block; background: var(--danger-bg);  color: var(--danger-fg); }
+    .status.warn{ display: block; background: var(--warn-bg);    color: var(--warn-fg); }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Back nav ── */
+    .back-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .back-row h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    /* ── Library grid ── */
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .book-card:hover {
+      border-color: var(--amber-dim);
+      transform: translateY(-2px);
+    }
+
+    .book-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .book-card-meta {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      border: 1px dashed var(--aged);
+      border-radius: var(--radius-lg);
+      color: var(--muted);
+      font-style: italic;
+      font-size: 17px;
+    }
+
+    /* ── Import panel ── */
+    .import-block {
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .import-block label {
+      display: block;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+
+    .import-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .import-row input { flex: 1; min-width: 180px; }
+
+    /* ── Book view ── */
+    .book-view-header {
+      margin-bottom: 20px;
+    }
+
+    .book-view-title {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .book-view-meta {
+      font-size: 14px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .book-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .highlights-list {
+      border-top: 1px solid var(--aged);
+    }
+
+    .hl-item {
+      padding: 16px 16px 16px 24px;
+      border-bottom: 1px solid var(--aged);
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--ink);
+      position: relative;
+      border-left: 3px solid transparent;
+      transition: border-left-color 0.15s, background 0.1s;
+    }
+
+    .hl-item:hover {
+      border-left-color: var(--amber-dim);
+      background: rgba(200, 105, 26, 0.03);
+    }
+
+    .hl-item:last-child { border-bottom: none; }
+
+    /* ── Backup panel ── */
+    .backup-section {
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .backup-section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .backup-desc {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .backup-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--aged);
+      margin: 8px 0 16px;
+    }
+  </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="container">
-    <h1>Extractor de Highlights</h1>
-    <p style="font-size: 0.9em; color: #666;">Pega el código HTML completo aquí abajo:</p>
-    
-    <div class="input-group">
-        <textarea id="sourceCode" placeholder="Pegar código HTML..."></textarea>
+  <!-- ── Site header ── -->
+  <header class="site-header">
+    <div class="site-title">Kindle <span>Highlights</span></div>
+    <div class="header-actions" id="headerActions">
+      <button class="btn-sm" onclick="showBackup()">⇅ Copia de seguridad</button>
+      <button class="btn-sm btn-primary" onclick="showImport()">+ Importar libro</button>
     </div>
-    
-    <div class="buttons">
-        <button class="btn-extract" onclick="extractText()">Extraer Texto</button>
-        <button class="btn-copy" id="btnCopy" onclick="copyToClipboard()">Copiar Todo</button>
+  </header>
+
+  <!-- ══════════════════════════════
+       VIEW: Library
+  ══════════════════════════════ -->
+  <div class="view active" id="libView">
+    <div class="library-grid" id="libraryGrid"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Import
+  ══════════════════════════════ -->
+  <div class="view" id="importView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Volver</button>
+      <h2>Importar highlights</h2>
+    </div>
+    <div class="import-block">
+      <label>Código HTML exportado de Kindle</label>
+      <textarea id="sourceCode" placeholder="Pega aquí el HTML completo del archivo exportado por Kindle…"></textarea>
+      <div class="import-row">
+        <input type="text" id="bookName" placeholder="Título del libro (opcional — se detecta automáticamente)">
+        <button class="btn-primary" onclick="doImport()">Importar</button>
+      </div>
+    </div>
+    <div id="importStatus" class="status"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Book detail
+  ══════════════════════════════ -->
+  <div class="view" id="bookView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Mi biblioteca</button>
+    </div>
+    <div class="book-view-header">
+      <div class="book-view-title" id="bookViewTitle"></div>
+      <div class="book-view-meta" id="bookViewMeta"></div>
+    </div>
+    <div class="book-actions">
+      <button onclick="copyHighlights()">Copiar todo</button>
+      <button class="btn-danger" onclick="deleteBook()">Eliminar libro</button>
+    </div>
+    <div class="highlights-list" id="highlightsList"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Backup
+  ══════════════════════════════ -->
+  <div class="view" id="backupView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Volver</button>
+      <h2>Copia de seguridad</h2>
     </div>
 
-    <div class="result-area">
-        <div id="status" style="margin-bottom:10px; font-weight:bold; display:none;"></div>
-        <ul id="outputList"></ul>
+    <div class="backup-section">
+      <h3>Exportar biblioteca</h3>
+      <p class="backup-desc">Descarga un archivo JSON con todos tus libros y highlights. Úsalo como copia de seguridad o para transferir tu biblioteca a otro navegador o dispositivo.</p>
+      <div class="backup-row">
+        <button class="btn-primary" onclick="exportLibrary()">Descargar kindle-biblioteca.json</button>
+      </div>
+      <div id="exportStatus" class="status"></div>
     </div>
+
+    <hr class="divider">
+
+    <div class="backup-section">
+      <h3>Importar biblioteca</h3>
+      <p class="backup-desc">Carga un archivo JSON exportado previamente. Los libros nuevos se añaden directamente; los que ya existen se fusionan añadiendo solo los highlights que falten.</p>
+      <div class="backup-row">
+        <label class="file-label btn-sm" for="jsonFileInput">Seleccionar archivo JSON</label>
+        <input type="file" id="jsonFileInput" accept=".json,application/json" onchange="importLibrary(event)">
+      </div>
+      <div id="restoreStatus" class="status"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-    function extractText() {
-        const source = document.getElementById('sourceCode').value;
-        const list = document.getElementById('outputList');
-        const status = document.getElementById('status');
-        const btnCopy = document.getElementById('btnCopy');
-        
-        list.innerHTML = '';
-        status.style.display = 'none';
-        btnCopy.style.display = 'none';
-        
-        if (!source.trim()) {
-            alert("Por favor, pega el código fuente primero.");
-            return;
-        }
+  const SELECTORS = [
+    '#highlight', '[id="highlight"]', '.highlight',
+    '[class*="highlight"]', '.noteText', '.sectionHeading', '[id*="highlight"]'
+  ];
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(source, 'text/html');
+  let library = {};
+  let currentBook = null;
 
-        const nodes = doc.querySelectorAll('#highlight');
-        
-        if (nodes.length === 0) {
-            status.textContent = "No se encontraron fragmentos (id='highlight').";
-            status.style.color = "red";
-            status.style.display = 'block';
-        } else {
-            let count = 0;
-            nodes.forEach(node => {
+  /* ── Storage ── */
+  function loadLibrary() {
+    try { const d = localStorage.getItem('kindleLib'); if (d) library = JSON.parse(d); }
+    catch (e) { library = {}; }
+  }
 
-                let text = node.textContent;
+  function saveLibrary() {
+    try { localStorage.setItem('kindleLib', JSON.stringify(library)); }
+    catch (e) { console.warn('localStorage no disponible'); }
+  }
 
-                text = text.replace(/\[\d+\]/g, '');
+  /* ── Helpers ── */
+  function clean(t) {
+    return t.replace(/\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
+  }
 
-                text = text.trim();
+  function slugify(t) {
+    return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('book-' + Date.now());
+  }
 
-                if (text.length > 0) {
-                    const li = document.createElement('li');
-                    li.textContent = text;
-                    list.appendChild(li);
-                    count++;
-                }
-            });
-            
-            status.textContent = `Se han extraído ${count} fragmentos limpios.`;
-            status.style.color = "#27ae60";
-            status.style.display = 'block';
-            
-            if (count > 0) {
-                btnCopy.style.display = 'inline-block';
-            }
-        }
+  function titleFromDoc(doc) {
+    for (const s of ['h1', '.bookTitle', 'title', 'h2']) {
+      const el = doc.querySelector(s);
+      if (el && el.textContent.trim()) return el.textContent.trim();
     }
+    return '';
+  }
 
-    function copyToClipboard() {
-        const listItems = document.querySelectorAll('#outputList li');
-        let allText = "";
-        listItems.forEach(li => {
-            allText += "- " + li.textContent + "\n";
-        });
-        
-        navigator.clipboard.writeText(allText).then(() => {
-            const originalText = document.getElementById('btnCopy').textContent;
-            document.getElementById('btnCopy').textContent = "¡Copiado!";
-            setTimeout(() => {
-                document.getElementById('btnCopy').textContent = originalText;
-            }, 2000);
-        });
+  function extractNodes(doc) {
+    for (const sel of SELECTORS) {
+      try { const n = doc.querySelectorAll(sel); if (n.length > 0) return Array.from(n); }
+      catch (e) {}
     }
+    return [];
+  }
+
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status ' + type;
+  }
+
+  function mergeBook(key, title, incoming) {
+    if (!library[key]) {
+      library[key] = { title, highlights: incoming };
+      return { added: incoming.length, isNew: true };
+    }
+    const existing = new Set(library[key].highlights.map(h => h.toLowerCase().replace(/\s/g, '')));
+    const news = incoming.filter(h => !existing.has(h.toLowerCase().replace(/\s/g, '')));
+    library[key].highlights.push(...news);
+    return { added: news.length, isNew: false };
+  }
+
+  /* ── View switching ── */
+  function switchView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const headerActions = document.getElementById('headerActions');
+    headerActions.style.display = (id === 'libView') ? '' : 'none';
+  }
+
+  function showLibrary() {
+    switchView('libView');
+    renderLibrary();
+  }
+
+  function showImport() {
+    switchView('importView');
+    document.getElementById('importStatus').className = 'status';
+    document.getElementById('sourceCode').value = '';
+    document.getElementById('bookName').value = '';
+  }
+
+  function showBackup() {
+    switchView('backupView');
+    document.getElementById('exportStatus').className = 'status';
+    document.getElementById('restoreStatus').className = 'status';
+    document.getElementById('jsonFileInput').value = '';
+  }
+
+  /* ── Render library ── */
+  function renderLibrary() {
+    const grid = document.getElementById('libraryGrid');
+    const keys = Object.keys(library);
+    if (keys.length === 0) {
+      grid.innerHTML = '<div class="empty-state">Aún no hay libros importados</div>';
+      return;
+    }
+    grid.innerHTML = keys.map(k => {
+      const b = library[k];
+      const n = b.highlights.length;
+      return `<div class="book-card" onclick="openBook('${k}')">
+        <div class="book-card-title">${b.title}</div>
+        <div class="book-card-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── Import Kindle HTML ── */
+  function doImport() {
+    const src = document.getElementById('sourceCode').value;
+    if (!src.trim()) { setStatus('importStatus', 'Pega el HTML primero.', 'err'); return; }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(src, 'text/html');
+    const nodes = extractNodes(doc);
+    if (nodes.length === 0) { setStatus('importStatus', 'No se encontraron highlights en este HTML.', 'err'); return; }
+
+    const title = document.getElementById('bookName').value.trim() || titleFromDoc(doc) || 'Libro sin título';
+    const key = slugify(title);
+    const incoming = [...new Set(nodes.map(n => clean(n.textContent)).filter(t => t.length > 0))];
+
+    const { added, isNew } = mergeBook(key, title, incoming);
+    saveLibrary();
+
+    if (isNew)
+      setStatus('importStatus', `"${title}" importado con ${added} highlights.`, 'ok');
+    else if (added > 0)
+      setStatus('importStatus', `${added} highlight${added !== 1 ? 's' : ''} nuevos añadidos a "${title}".`, 'ok');
+    else
+      setStatus('importStatus', `"${title}" ya estaba actualizado. No hay highlights nuevos.`, 'warn');
+  }
+
+  /* ── Open book ── */
+  function openBook(key) {
+    currentBook = key;
+    const b = library[key];
+    switchView('bookView');
+    document.getElementById('bookViewTitle').textContent = b.title;
+    document.getElementById('bookViewMeta').textContent = b.highlights.length + ' highlights';
+    document.getElementById('highlightsList').innerHTML =
+      b.highlights.map(h => `<div class="hl-item">${h}</div>`).join('');
+  }
+
+  /* ── Copy highlights ── */
+  function copyHighlights() {
+    if (!currentBook) return;
+    const text = library[currentBook].highlights.map(h => '— ' + h).join('\n\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.book-actions button');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = orig, 2000);
+    });
+  }
+
+  /* ── Delete book ── */
+  function deleteBook() {
+    if (!currentBook) return;
+    if (!confirm(`¿Eliminar "${library[currentBook].title}" y todos sus highlights?`)) return;
+    delete library[currentBook];
+    saveLibrary();
+    currentBook = null;
+    showLibrary();
+  }
+
+  /* ── Export JSON ── */
+  function exportLibrary() {
+    const keys = Object.keys(library);
+    if (keys.length === 0) { setStatus('exportStatus', 'No hay libros que exportar.', 'err'); return; }
+    const blob = new Blob([JSON.stringify(library, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'kindle-biblioteca.json'; a.click();
+    URL.revokeObjectURL(url);
+    setStatus('exportStatus', `Exportados ${keys.length} libro${keys.length !== 1 ? 's' : ''}.`, 'ok');
+  }
+
+  /* ── Import JSON ── */
+  function importLibrary(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (typeof data !== 'object' || Array.isArray(data)) throw new Error();
+        let addedBooks = 0, addedHl = 0;
+        for (const key of Object.keys(data)) {
+          const b = data[key];
+          if (!b.title || !Array.isArray(b.highlights)) continue;
+          const { added, isNew } = mergeBook(key, b.title, b.highlights);
+          if (isNew) addedBooks++;
+          addedHl += added;
+        }
+        saveLibrary();
+        setStatus('restoreStatus',
+          `Importación completada: ${addedBooks} libro${addedBooks !== 1 ? 's' : ''} nuevo${addedBooks !== 1 ? 's' : ''}, ${addedHl} highlight${addedHl !== 1 ? 's' : ''} añadido${addedHl !== 1 ? 's' : ''}.`,
+          'ok');
+      } catch (err) {
+        setStatus('restoreStatus', 'Archivo no válido. Usa un JSON exportado desde esta misma herramienta.', 'err');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ── Init ── */
+  loadLibrary();
+  renderLibrary();
 </script>
-
 </body>
 </html>
