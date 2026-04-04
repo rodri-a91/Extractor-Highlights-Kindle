@@ -864,7 +864,7 @@
 
   function mergeBook(key, title, incoming) {
     if (!library[key]) {
-      library[key] = { title, highlights: incoming };
+      library = Object.assign({ [key]: { title, highlights: incoming } }, library);
       return { added: incoming.length, isNew: true };
     }
     const existing = new Set(library[key].highlights.map(h => h.toLowerCase().replace(/\s/g, '')));
