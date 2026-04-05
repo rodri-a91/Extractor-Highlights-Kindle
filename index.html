@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Highlights</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #1a1410;
+      --paper: #f7f3ed;
+      --aged: #ddd8ce;
+      --surface: #ffffff;
+      --amber: #c8691a;
+      --amber-dim: #e8a86a;
+      --muted: #8a7f72;
+      --success-bg: #edf7f0;
+      --success-fg: #2d6a4f;
+      --warn-bg: #fef8ec;
+      --warn-fg: #92600a;
+      --danger-bg: #fdf0f0;
+      --danger-fg: #9b3a3a;
+      --danger-border: #f5c6c6;
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    html[data-theme="dark"] {
+      --ink: #e8e0d4;
+      --paper: #1a1814;
+      --aged: #2e2a25;
+      --surface: #242019;
+      --amber: #e8923a;
+      --amber-dim: #a86318;
+      --muted: #7a7068;
+      --success-bg: #0f2a1a;
+      --success-fg: #6fcf97;
+      --warn-bg: #2a1f08;
+      --warn-fg: #f0a050;
+      --danger-bg: #2a0f0f;
+      --danger-fg: #f08080;
+      --danger-border: #5a2020;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not([data-theme="light"]) {
+        --ink: #e8e0d4;
+        --paper: #1a1814;
+        --aged: #2e2a25;
+        --surface: #242019;
+        --amber: #e8923a;
+        --amber-dim: #a86318;
+        --muted: #7a7068;
+        --success-bg: #0f2a1a;
+        --success-fg: #6fcf97;
+        --warn-bg: #2a1f08;
+        --warn-fg: #f0a050;
+        --danger-bg: #2a0f0f;
+        --danger-fg: #f08080;
+        --danger-border: #5a2020;
+      }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body { transition: background 0.25s, color 0.25s; }
+
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--aged);
+      flex-wrap: wrap;
+    }
+
+    .site-title {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .site-title span {
+      color: var(--amber);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Theme toggle ── */
+    .btn-theme {
+      font-size: 16px;
+      padding: 6px 10px;
+      line-height: 1;
+      border-radius: var(--radius);
+      border: 1px solid var(--aged);
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-theme:hover { background: var(--aged); }
+
+    /* ── Buttons ── */
+    button, .file-label {
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--aged);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      display: inline-block;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    button:hover, .file-label:hover { background: var(--aged); }
+    button:active, .file-label:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #b05a14; border-color: #b05a14; }
+
+    .btn-danger {
+      color: var(--danger-fg);
+      border-color: var(--danger-border);
+    }
+    .btn-danger:hover { background: var(--danger-bg); }
+
+    .btn-sm {
+      font-size: 13px;
+      padding: 6px 14px;
+    }
+
+    input[type="file"] { display: none; }
+
+    /* ── Inputs ── */
+    input[type="text"], textarea, select {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 10px 12px;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(200, 105, 26, 0.12);
+    }
+
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.8; }
+
+    textarea { resize: vertical; height: 130px; line-height: 1.5; }
+
+    /* ── Status messages ── */
+    .status {
+      display: none;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      margin-top: 12px;
+    }
+    .status.ok  { display: block; background: var(--success-bg); color: var(--success-fg); }
+    .status.err { display: block; background: var(--danger-bg);  color: var(--danger-fg); }
+    .status.warn{ display: block; background: var(--warn-bg);    color: var(--warn-fg); }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Back nav ── */
+    .back-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .back-row h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    /* ── Library grid ── */
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 20px;
+    }
+
+    .book-card {
+      cursor: pointer;
+      transition: transform 0.18s;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .book-card:hover { transform: translateY(-4px); }
+    .book-card:hover .book-cover { box-shadow: 0 10px 28px rgba(0,0,0,0.22); }
+
+    .book-cover {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--aged);
+      position: relative;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.14);
+      transition: box-shadow 0.18s;
+    }
+
+    .book-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .book-cover img.loaded { opacity: 1; }
+
+    .book-cover-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      gap: 8px;
+      background: linear-gradient(145deg, var(--aged) 0%, var(--surface) 100%);
+    }
+
+    .book-cover-placeholder span {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .book-cover-placeholder p {
+      font-size: 11px;
+      text-align: center;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .book-card-info { padding: 0 2px; }
+
+    .book-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 3px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .book-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      border: 1px dashed var(--aged);
+      border-radius: var(--radius-lg);
+      color: var(--muted);
+      font-style: italic;
+      font-size: 17px;
+    }
+
+    /* ── View toggle ── */
+    .lib-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .lib-count {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      border: none;
+      border-radius: 0;
+      padding: 6px 12px;
+      font-size: 15px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .view-toggle button:hover { background: var(--aged); color: var(--ink); }
+    .view-toggle button.active { background: var(--aged); color: var(--ink); }
+    .view-toggle button + button { border-left: 1px solid var(--aged); }
+
+    /* ── List view ── */
+    .library-list {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--aged);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: var(--aged); }
+
+    .list-cover {
+      width: 36px;
+      height: 54px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--aged);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .list-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .list-cover img.loaded { opacity: 1; }
+
+    .list-cover-ph {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      background: linear-gradient(145deg, var(--aged) 0%, var(--surface) 100%);
+    }
+
+    .list-title {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .list-meta {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .list-arrow {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ── Import panel ── */
+    .import-block {
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .import-block label {
+      display: block;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+
+    .import-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .import-row input { flex: 1; min-width: 180px; }
+
+    /* ── Title editing ── */
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-edit-title {
+      font-size: 13px;
+      padding: 4px 12px;
+      color: var(--muted);
+      border-color: var(--aged);
+    }
+
+    .btn-edit-title:hover { color: var(--ink); }
+
+    .title-edit-form {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .title-edit-form.active { display: flex; }
+
+    .title-edit-form input {
+      font-family: 'Crimson Pro', Georgia, serif;
+      font-size: 22px;
+      font-weight: 600;
+      padding: 4px 10px;
+      flex: 1;
+      min-width: 200px;
+      width: auto;
+    }
+
+    /* ── Cover edit panel ── */
+    .cover-edit-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .cover-edit-panel.active { display: flex; }
+
+    .cover-edit-panel h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .cover-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--aged);
+      padding-bottom: 0;
+    }
+
+    .cover-tab {
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--muted);
+      cursor: pointer;
+      background: transparent;
+      margin-bottom: -1px;
+    }
+
+    .cover-tab.active {
+      background: var(--surface);
+      border-color: var(--aged);
+      border-bottom-color: var(--surface);
+      color: var(--ink);
+    }
+
+    .cover-tab-content { display: none; }
+    .cover-tab-content.active { display: flex; flex-direction: column; gap: 10px; }
+
+    .cover-url-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cover-url-row input { flex: 1; min-width: 200px; }
+
+    .cover-preview {
+      width: 80px;
+      height: 120px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      border: 1px solid var(--aged);
+      display: none;
+    }
+
+    .cover-preview.visible { display: block; }
+
+    .cover-upload-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border: 1px dashed var(--aged);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--muted);
+      transition: border-color 0.15s, color 0.15s;
+      width: fit-content;
+    }
+
+    .cover-upload-label:hover { border-color: var(--amber); color: var(--ink); }
+
+    .cover-edit-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-cover-reset {
+      font-size: 13px;
+      padding: 6px 14px;
+      color: var(--muted);
+    }
+
+    /* ── Book view ── */
+    .book-view-header {
+      margin-bottom: 20px;
+    }
+
+    .book-view-title {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .book-view-meta {
+      font-size: 14px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .book-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .highlights-list {
+      border-top: 1px solid var(--aged);
+    }
+
+    .hl-item {
+      padding: 16px 16px 16px 24px;
+      border-bottom: 1px solid var(--aged);
+      font-size: 17px;
+      line-height: 1.7;
+      color: var(--ink);
+      border-left: 3px solid transparent;
+      transition: border-left-color 0.15s, background 0.1s;
+    }
+
+    .hl-item:nth-child(odd)  { background: var(--surface); }
+    .hl-item:nth-child(even) { background: var(--paper); }
+
+    .hl-item:hover {
+      border-left-color: var(--amber-dim);
+      background: rgba(200, 105, 26, 0.06) !important;
+    }
+
+    .hl-item:last-child { border-bottom: none; }
+
+    /* ── Backup panel ── */
+    .backup-section {
+      background: var(--surface);
+      border: 1px solid var(--aged);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .backup-section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .backup-desc {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .backup-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--aged);
+      margin: 8px 0 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Site header ── -->
+  <header class="site-header">
+    <div class="site-title">Kindle <span>Highlights</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn-theme" id="themeToggle" onclick="toggleTheme()" title="Cambiar modo día/noche">☀️</button>
+      <div class="header-actions" id="headerActions">
+        <button class="btn-sm" onclick="showBackup()">⇅ Copia de seguridad</button>
+        <button class="btn-sm btn-primary" onclick="showImport()">+ Importar libro</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════
+       VIEW: Library
+  ══════════════════════════════ -->
+  <div class="view active" id="libView">
+    <div class="lib-toolbar">
+      <span class="lib-count" id="libCount"></span>
+      <div class="view-toggle">
+        <button id="btnGallery" class="active" onclick="setLibView('gallery')" title="Galería">⊞</button>
+        <button id="btnList"    onclick="setLibView('list')"    title="Lista">≡</button>
+      </div>
+    </div>
+    <div id="libraryGrid"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Import
+  ══════════════════════════════ -->
+  <div class="view" id="importView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Volver</button>
+      <h2>Importar highlights</h2>
+    </div>
+    <div class="import-block">
+      <label>Código HTML exportado de Kindle</label>
+      <textarea id="sourceCode" placeholder="Pega aquí el HTML completo del archivo exportado por Kindle…"></textarea>
+      <div class="import-row">
+        <input type="text" id="bookName" placeholder="Título del libro (opcional — se detecta automáticamente)">
+        <button class="btn-primary" onclick="doImport()">Importar</button>
+      </div>
+    </div>
+    <div id="importStatus" class="status"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Book detail
+  ══════════════════════════════ -->
+  <div class="view" id="bookView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Mi biblioteca</button>
+    </div>
+    <div class="book-view-header">
+      <div class="title-row">
+        <div class="book-view-title" id="bookViewTitle"></div>
+        <button class="btn-sm btn-edit-title" onclick="startEditTitle()">Editar</button>
+      </div>
+      <div class="title-edit-form" id="titleEditForm">
+        <input type="text" id="titleEditInput" placeholder="Título del libro">
+        <button class="btn-primary btn-sm" onclick="saveTitle()">Guardar</button>
+        <button class="btn-sm" onclick="cancelEditTitle()">Cancelar</button>
+      </div>
+      <div class="book-view-meta" id="bookViewMeta"></div>
+    </div>
+
+    <!-- Cover edit panel -->
+    <div class="cover-edit-panel" id="coverEditPanel">
+      <h4>Cambiar portada</h4>
+      <div class="cover-tabs">
+        <button class="cover-tab active" onclick="switchCoverTab('url', this)">URL</button>
+        <button class="cover-tab" onclick="switchCoverTab('file', this)">Archivo local</button>
+      </div>
+
+      <div class="cover-tab-content active" id="coverTabUrl">
+        <div class="cover-url-row">
+          <input type="text" id="coverUrlInput" placeholder="https://ejemplo.com/portada.jpg" oninput="previewCoverUrl()">
+          <img id="coverUrlPreview" class="cover-preview" alt="Vista previa">
+        </div>
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" onclick="saveCoverUrl()">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset" onclick="resetCover()">Buscar automáticamente</button>
+          <button class="btn-sm" onclick="closeCoverPanel()">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="cover-tab-content" id="coverTabFile">
+        <label class="cover-upload-label" for="coverFileInput">
+          <span>📁</span> Seleccionar imagen
+        </label>
+        <input type="file" id="coverFileInput" accept="image/*" onchange="previewCoverFile(event)">
+        <img id="coverFilePreview" class="cover-preview" alt="Vista previa">
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" onclick="saveCoverFile()">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset" onclick="resetCover()">Buscar automáticamente</button>
+          <button class="btn-sm" onclick="closeCoverPanel()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div class="book-actions">
+      <button onclick="copyHighlights()">Copiar todo</button>
+      <button onclick="openCoverPanel()">Cambiar portada</button>
+      <button class="btn-danger" onclick="deleteBook()">Eliminar libro</button>
+    </div>
+    <div class="highlights-list" id="highlightsList"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Backup
+  ══════════════════════════════ -->
+  <div class="view" id="backupView">
+    <div class="back-row">
+      <button onclick="showLibrary()">← Volver</button>
+      <h2>Copia de seguridad</h2>
+    </div>
+
+    <div class="backup-section">
+      <h3>Exportar biblioteca</h3>
+      <p class="backup-desc">Descarga un archivo JSON con todos tus libros y highlights. Úsalo como copia de seguridad o para transferir tu biblioteca a otro navegador o dispositivo.</p>
+      <div class="backup-row">
+        <button class="btn-primary" onclick="exportLibrary()">Descargar kindle-biblioteca.json</button>
+      </div>
+      <div id="exportStatus" class="status"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="backup-section">
+      <h3>Importar biblioteca</h3>
+      <p class="backup-desc">Carga un archivo JSON exportado previamente. Los libros nuevos se añaden directamente; los que ya existen se fusionan añadiendo solo los highlights que falten.</p>
+      <div class="backup-row">
+        <label class="file-label btn-sm" for="jsonFileInput">Seleccionar archivo JSON</label>
+        <input type="file" id="jsonFileInput" accept=".json,application/json" onchange="importLibrary(event)">
+      </div>
+      <div id="restoreStatus" class="status"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SELECTORS = [
+    '#highlight', '[id="highlight"]', '.highlight',
+    '[class*="highlight"]', '.noteText', '.sectionHeading', '[id*="highlight"]'
+  ];
+
+  let library = {};
+  let currentBook = null;
+
+  /* ── Storage ── */
+  function loadLibrary() {
+    try { const d = localStorage.getItem('kindleLib'); if (d) library = JSON.parse(d); }
+    catch (e) { library = {}; }
+  }
+
+  function saveLibrary() {
+    try { localStorage.setItem('kindleLib', JSON.stringify(library)); }
+    catch (e) { console.warn('localStorage no disponible'); }
+  }
+
+  /* ── Helpers ── */
+  function clean(t) {
+    return t.replace(/\[\d+\]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function slugify(t) {
+    return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('book-' + Date.now());
+  }
+
+  function titleFromDoc(doc) {
+    for (const s of ['h1', '.bookTitle', 'title', 'h2']) {
+      const el = doc.querySelector(s);
+      if (el && el.textContent.trim()) return el.textContent.trim();
+    }
+    return '';
+  }
+
+  function extractNodes(doc) {
+    for (const sel of SELECTORS) {
+      try { const n = doc.querySelectorAll(sel); if (n.length > 0) return Array.from(n); }
+      catch (e) {}
+    }
+    return [];
+  }
+
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status ' + type;
+  }
+
+  function mergeBook(key, title, incoming) {
+    if (!library[key]) {
+      library = Object.assign({ [key]: { title, highlights: incoming } }, library);
+      return { added: incoming.length, isNew: true };
+    }
+    const existing = new Set(library[key].highlights.map(h => h.toLowerCase().replace(/\s/g, '')));
+    const news = incoming.filter(h => !existing.has(h.toLowerCase().replace(/\s/g, '')));
+    library[key].highlights.push(...news);
+    return { added: news.length, isNew: false };
+  }
+
+  /* ── View switching ── */
+  function switchView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const headerActions = document.getElementById('headerActions');
+    headerActions.style.display = (id === 'libView') ? '' : 'none';
+  }
+
+  function showLibrary() {
+    switchView('libView');
+    renderLibrary();
+  }
+
+  function showImport() {
+    switchView('importView');
+    document.getElementById('importStatus').className = 'status';
+    document.getElementById('sourceCode').value = '';
+    document.getElementById('bookName').value = '';
+  }
+
+  function showBackup() {
+    switchView('backupView');
+    document.getElementById('exportStatus').className = 'status';
+    document.getElementById('restoreStatus').className = 'status';
+    document.getElementById('jsonFileInput').value = '';
+  }
+
+  /* ── Cover fetching (Google Books) ── */
+  async function fetchCover(key, title) {
+    if (library[key].coverUrl !== undefined) return;
+
+    const q = encodeURIComponent('intitle:' + title);
+    try {
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&printType=books`);
+      const data = await res.json();
+      const info = data?.items?.[0]?.volumeInfo;
+      let url = info?.imageLinks?.extraLarge
+             || info?.imageLinks?.large
+             || info?.imageLinks?.medium
+             || info?.imageLinks?.thumbnail
+             || null;
+      if (url) url = url.replace('http://', 'https://').replace(/&zoom=\d/, '&zoom=0');
+      library[key].coverUrl = url;
+      saveLibrary();
+    } catch (e) {
+      library[key].coverUrl = null;
+    }
+
+    const img = document.querySelector(`[data-key="${key}"] img`);
+    if (img && library[key].coverUrl) {
+      img.src = library[key].coverUrl;
+      img.onload = () => img.classList.add('loaded');
+    }
+  }
+
+  /* ── Render library ── */
+  let currentLibView = 'gallery';
+
+  function setLibView(mode) {
+    currentLibView = mode;
+    try { localStorage.setItem('kindleLibView', mode); } catch(e) {}
+    document.getElementById('btnGallery').classList.toggle('active', mode === 'gallery');
+    document.getElementById('btnList').classList.toggle('active', mode === 'list');
+    renderLibrary();
+  }
+
+  function renderLibrary() {
+    const container = document.getElementById('libraryGrid');
+    const keys = Object.keys(library);
+    const countEl = document.getElementById('libCount');
+    if (countEl) countEl.textContent = keys.length ? `${keys.length} libro${keys.length !== 1 ? 's' : ''}` : '';
+
+    if (keys.length === 0) {
+      container.className = '';
+      container.innerHTML = '<div class="empty-state">Aún no hay libros importados</div>';
+      return;
+    }
+
+    if (currentLibView === 'list') {
+      container.className = 'library-list';
+      container.innerHTML = keys.map(k => {
+        const b = library[k];
+        const n = b.highlights.length;
+        const hasUrl = b.coverUrl;
+        const imgTag = hasUrl
+          ? `<img src="${hasUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
+          : `<img style="display:none">`;
+        const ph = !hasUrl ? `<div class="list-cover-ph">📖</div>` : '';
+        return `<div class="list-item" data-key="${k}" onclick="openBook('${k}')">
+          <div class="list-cover">${imgTag}${ph}</div>
+          <div class="list-title">${b.title}</div>
+          <div class="list-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
+          <div class="list-arrow">›</div>
+        </div>`;
+      }).join('');
+    } else {
+      container.className = 'library-grid';
+      container.innerHTML = keys.map(k => {
+        const b = library[k];
+        const n = b.highlights.length;
+        const hasUrl = b.coverUrl;
+        const imgTag = hasUrl
+          ? `<img src="${hasUrl}" alt="${b.title}" onload="this.classList.add('loaded')" onerror="this.style.display='none'">`
+          : `<img style="display:none">`;
+        const placeholder = !hasUrl
+          ? `<div class="book-cover-placeholder"><span>📖</span><p>${b.title}</p></div>`
+          : `<div class="book-cover-placeholder" style="display:none"></div>`;
+        return `<div class="book-card" data-key="${k}" onclick="openBook('${k}')">
+          <div class="book-cover">${imgTag}${placeholder}</div>
+          <div class="book-card-info">
+            <div class="book-card-title">${b.title}</div>
+            <div class="book-card-meta">${n} highlight${n !== 1 ? 's' : ''}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Fetch covers for books that haven't been looked up yet
+    keys.forEach(k => {
+      if (library[k].coverUrl === undefined) fetchCover(k, library[k].title);
+    });
+  }
+
+  /* ── Import Kindle HTML ── */
+  function doImport() {
+    const src = document.getElementById('sourceCode').value;
+    if (!src.trim()) { setStatus('importStatus', 'Pega el HTML primero.', 'err'); return; }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(src, 'text/html');
+    const nodes = extractNodes(doc);
+    if (nodes.length === 0) { setStatus('importStatus', 'No se encontraron highlights en este HTML.', 'err'); return; }
+
+    const title = document.getElementById('bookName').value.trim() || titleFromDoc(doc) || 'Libro sin título';
+    const key = slugify(title);
+    const incoming = [...new Set(nodes.map(n => clean(n.textContent)).filter(t => t.length > 0))];
+
+    const { added, isNew } = mergeBook(key, title, incoming);
+    saveLibrary();
+
+    if (isNew)
+      setStatus('importStatus', `"${title}" importado con ${added} highlights.`, 'ok');
+    else if (added > 0)
+      setStatus('importStatus', `${added} highlight${added !== 1 ? 's' : ''} nuevos añadidos a "${title}".`, 'ok');
+    else
+      setStatus('importStatus', `"${title}" ya estaba actualizado. No hay highlights nuevos.`, 'warn');
+  }
+
+  /* ── Edit title ── */
+  function startEditTitle() {
+    const form = document.getElementById('titleEditForm');
+    document.getElementById('titleEditInput').value = library[currentBook].title;
+    form.classList.add('active');
+    document.getElementById('titleEditInput').focus();
+  }
+
+  function cancelEditTitle() {
+    document.getElementById('titleEditForm').classList.remove('active');
+    closeCoverPanel();
+  }
+
+  function saveTitle() {
+    const newTitle = document.getElementById('titleEditInput').value.trim();
+    if (!newTitle) return;
+    if (newTitle !== library[currentBook].title) {
+      delete library[currentBook].coverUrl; // force re-fetch with new title
+    }
+    library[currentBook].title = newTitle;
+    saveLibrary();
+    document.getElementById('bookViewTitle').textContent = newTitle;
+    document.getElementById('titleEditForm').classList.remove('active');
+  }
+
+  /* ── Cover panel ── */
+  function openCoverPanel() {
+    const panel = document.getElementById('coverEditPanel');
+    panel.classList.add('active');
+    // pre-fill URL if there's one already
+    document.getElementById('coverUrlInput').value = library[currentBook].coverUrl || '';
+    document.getElementById('coverUrlPreview').classList.remove('visible');
+    document.getElementById('coverFilePreview').classList.remove('visible');
+    if (library[currentBook].coverUrl) {
+      const p = document.getElementById('coverUrlPreview');
+      p.src = library[currentBook].coverUrl;
+      p.classList.add('visible');
+    }
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeCoverPanel() {
+    document.getElementById('coverEditPanel').classList.remove('active');
+    document.getElementById('coverUrlInput').value = '';
+    document.getElementById('coverUrlPreview').classList.remove('visible');
+    document.getElementById('coverFilePreview').classList.remove('visible');
+    document.getElementById('coverFileInput').value = '';
+  }
+
+  function switchCoverTab(tab, btn) {
+    document.querySelectorAll('.cover-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.cover-tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('coverTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  }
+
+  function previewCoverUrl() {
+    const url = document.getElementById('coverUrlInput').value.trim();
+    const preview = document.getElementById('coverUrlPreview');
+    if (url) {
+      preview.src = url;
+      preview.onload = () => preview.classList.add('visible');
+      preview.onerror = () => preview.classList.remove('visible');
+    } else {
+      preview.classList.remove('visible');
+    }
+  }
+
+  function saveCoverUrl() {
+    const url = document.getElementById('coverUrlInput').value.trim();
+    if (!url) return;
+    library[currentBook].coverUrl = url;
+    saveLibrary();
+    updateCardCover(currentBook, url);
+    closeCoverPanel();
+  }
+
+  function previewCoverFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const preview = document.getElementById('coverFilePreview');
+      preview.src = ev.target.result;
+      preview.classList.add('visible');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function saveCoverFile() {
+    const file = document.getElementById('coverFileInput').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      library[currentBook].coverUrl = ev.target.result; // base64
+      saveLibrary();
+      updateCardCover(currentBook, ev.target.result);
+      closeCoverPanel();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetCover() {
+    delete library[currentBook].coverUrl;
+    saveLibrary();
+    fetchCover(currentBook, library[currentBook].title);
+    closeCoverPanel();
+  }
+
+  function updateCardCover(key, url) {
+    // Update the card in the library grid if rendered
+    const card = document.querySelector(`[data-key="${key}"]`);
+    if (card) {
+      const img = card.querySelector('img');
+      const ph  = card.querySelector('.book-cover-placeholder');
+      if (img) { img.src = url; img.style.display = ''; img.onload = () => img.classList.add('loaded'); }
+      if (ph)  { ph.style.display = 'none'; }
+    }
+  }
+
+  /* ── Open book ── */
+  function openBook(key) {
+    currentBook = key;
+    const b = library[key];
+    switchView('bookView');
+    document.getElementById('bookViewTitle').textContent = b.title;
+    document.getElementById('bookViewMeta').textContent = b.highlights.length + ' highlights';
+    document.getElementById('titleEditForm').classList.remove('active');
+    document.getElementById('highlightsList').innerHTML =
+      b.highlights.map(h => `<div class="hl-item">${h}</div>`).join('');
+  }
+
+  /* ── Copy highlights ── */
+  function copyHighlights() {
+    if (!currentBook) return;
+    const text = library[currentBook].highlights.map(h => '— ' + h).join('\n\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.book-actions button');
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = orig, 2000);
+    });
+  }
+
+  /* ── Delete book ── */
+  function deleteBook() {
+    if (!currentBook) return;
+    if (!confirm(`¿Eliminar "${library[currentBook].title}" y todos sus highlights?`)) return;
+    delete library[currentBook];
+    saveLibrary();
+    currentBook = null;
+    showLibrary();
+  }
+
+  /* ── Export JSON ── */
+  function exportLibrary() {
+    const keys = Object.keys(library);
+    if (keys.length === 0) { setStatus('exportStatus', 'No hay libros que exportar.', 'err'); return; }
+    const blob = new Blob([JSON.stringify(library, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'kindle-biblioteca.json'; a.click();
+    URL.revokeObjectURL(url);
+    setStatus('exportStatus', `Exportados ${keys.length} libro${keys.length !== 1 ? 's' : ''}.`, 'ok');
+  }
+
+  /* ── Import JSON ── */
+  function importLibrary(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (typeof data !== 'object' || Array.isArray(data)) throw new Error();
+        let addedBooks = 0, addedHl = 0;
+        for (const key of Object.keys(data)) {
+          const b = data[key];
+          if (!b.title || !Array.isArray(b.highlights)) continue;
+          const { added, isNew } = mergeBook(key, b.title, b.highlights);
+          if (isNew) addedBooks++;
+          addedHl += added;
+        }
+        saveLibrary();
+        setStatus('restoreStatus',
+          `Importación completada: ${addedBooks} libro${addedBooks !== 1 ? 's' : ''} nuevo${addedBooks !== 1 ? 's' : ''}, ${addedHl} highlight${addedHl !== 1 ? 's' : ''} añadido${addedHl !== 1 ? 's' : ''}.`,
+          'ok');
+      } catch (err) {
+        setStatus('restoreStatus', 'Archivo no válido. Usa un JSON exportado desde esta misma herramienta.', 'err');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ── Theme ── */
+  function getSystemTheme() {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('themeToggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+    try { localStorage.setItem('kindleTheme', theme); } catch(e) {}
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || getSystemTheme();
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  function initTheme() {
+    try {
+      const saved = localStorage.getItem('kindleTheme');
+      applyTheme(saved || getSystemTheme());
+    } catch(e) { applyTheme(getSystemTheme()); }
+  }
+
+  /* ── Init ── */
+  initTheme();
+  loadLibrary();
+  try {
+    const savedView = localStorage.getItem('kindleLibView');
+    if (savedView) {
+      currentLibView = savedView;
+      document.getElementById('btnGallery').classList.toggle('active', savedView === 'gallery');
+      document.getElementById('btnList').classList.toggle('active', savedView === 'list');
+    }
+  } catch(e) {}
+  renderLibrary();
+</script>
+</body>
+</html>
