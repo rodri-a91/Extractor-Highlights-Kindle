@@ -668,6 +668,7 @@
       margin: 8px 0 16px;
     }
   </style>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -772,6 +773,7 @@
     </div>
     <div class="book-actions">
       <button onclick="copyHighlights()">Copiar todo</button>
+      <button onclick="exportWord()">Exportar Word</button>
       <button onclick="openCoverPanel()">Cambiar portada</button>
       <button class="btn-danger" onclick="deleteBook()">Eliminar libro</button>
     </div>
@@ -1236,6 +1238,113 @@
       const saved = localStorage.getItem('kindleTheme');
       applyTheme(saved || getSystemTheme());
     } catch(e) { applyTheme(getSystemTheme()); }
+  }
+
+  /* ── Export Word ── */
+  async function exportWord() {
+    if (!currentBook) return;
+    const b = library[currentBook];
+
+    if (typeof docx === 'undefined') {
+      alert('La librería de Word no está disponible. Comprueba tu conexión a internet.');
+      return;
+    }
+
+    const {
+      Document, Packer, Paragraph, TextRun, HeadingLevel,
+      AlignmentType, BorderStyle, PageNumber, Footer, Header
+    } = docx;
+
+    const AMBER   = 'C8691A';
+    const INK     = '1A1410';
+    const MUTED   = '8A7F72';
+    const AGED    = 'E8E0D0';
+    const SURFACE = 'FDFAF6';
+
+    const children = [];
+
+    // ── Title page elements ──
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: b.title, font: 'Georgia', size: 56, bold: true, color: INK })],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 0, after: 200 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: AMBER, space: 8 } }
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: `${b.highlights.length} highlights`, font: 'Courier New', size: 20, color: MUTED })],
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 240, after: 800 }
+      })
+    );
+
+    // ── Highlights ──
+    b.highlights.forEach((h, i) => {
+      // Alternating left-border accent
+      const isEven = i % 2 === 0;
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: h,
+              font: 'Georgia',
+              size: 26,
+              color: INK,
+            })
+          ],
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { before: 0, after: 320, line: 360, lineRule: 'auto' },
+          indent: { left: 480, right: 240 },
+          border: {
+            left: {
+              style: BorderStyle.SINGLE,
+              size: isEven ? 12 : 4,
+              color: isEven ? AMBER : AGED,
+              space: 16
+            }
+          }
+        })
+      );
+    });
+
+    const doc = new Document({
+      styles: {
+        default: {
+          document: { run: { font: 'Georgia', size: 26, color: INK } }
+        }
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1700, right: 1440, bottom: 1700, left: 1700 }
+          }
+        },
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: b.title + '  ·  ', font: 'Courier New', size: 16, color: MUTED }),
+                  new TextRun({ children: [PageNumber.CURRENT], font: 'Courier New', size: 16, color: MUTED })
+                ],
+                alignment: AlignmentType.CENTER,
+                border: { top: { style: BorderStyle.SINGLE, size: 4, color: AGED, space: 8 } }
+              })
+            ]
+          })
+        },
+        children
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = b.title.replace(/[/\\?%*:|"<>]/g, '-') + '.docx';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   /* ── Init ── */
