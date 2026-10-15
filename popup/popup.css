@@ -31,4 +31,9 @@ button:disabled { opacity: .6; cursor: default; }
 .status.running { display: block; background: var(--run-bg); color: var(--run-fg); }
 .status.done    { display: block; background: var(--ok-bg);  color: var(--ok-fg); }
 .status.error   { display: block; background: var(--err-bg); color: var(--err-fg); }
+.btn-link {
+  border: none; background: none; padding: 2px; font-weight: 400; font-size: 12px;
+  color: var(--muted); text-decoration: underline; align-self: center;
+}
+.btn-link:hover { background: none; color: var(--ink); }
 .hint { margin-top: 12px; font-size: 12px; color: var(--muted); }

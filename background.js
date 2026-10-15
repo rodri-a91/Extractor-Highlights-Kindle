@@ -21,7 +21,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg?.type === 'startSync') {
-    startSync()
+    startSync({ full: !!msg.full })
       .then(() => sendResponse({ ok: true }))
       .catch(e => {
         setStatus({ state: 'error', current: 0, total: 0, message: e.message || String(e) });
@@ -62,7 +62,7 @@ function waitForComplete(tabId, timeoutMs = 30000) {
   });
 }
 
-async function startSync() {
+async function startSync({ full = false } = {}) {
   let [tab] = await chrome.tabs.query({ url: NOTEBOOK_PATTERNS });
   if (!tab) {
     const { lastOrigin = 'https://read.amazon.com' } = await chrome.storage.local.get('lastOrigin');
@@ -76,11 +76,12 @@ async function startSync() {
     throw new Error('Inicia sesión en Amazon en la pestaña que se ha abierto y vuelve a pulsar Sincronizar.');
   }
 
+  const msg = { type: 'sync', full };
   try {
-    await chrome.tabs.sendMessage(tab.id, { type: 'sync' });
+    await chrome.tabs.sendMessage(tab.id, msg);
   } catch {
     // La pestaña se abrió antes de instalar/recargar la extensión: inyectamos el content script
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: CONTENT_FILES });
-    await chrome.tabs.sendMessage(tab.id, { type: 'sync' });
+    await chrome.tabs.sendMessage(tab.id, msg);
   }
 }

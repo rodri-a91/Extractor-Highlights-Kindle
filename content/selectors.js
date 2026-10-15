@@ -9,6 +9,8 @@ KH.SEL = {
   libraryAuthor:    'p.kp-notebook-searchable',
   libraryCover:     'img.kp-notebook-cover-image',
   libraryNextToken: '.kp-notebook-library-next-page-start',
+  // Fecha (texto localizado, granularidad de día) de la última anotación del libro
+  libraryDate:      'input[id^="kp-notebook-annotated-date-"]',
 
   // Respuesta de /notebook?asin=…: cabecera del libro
   bookTitle:  'h3.kp-notebook-metadata',

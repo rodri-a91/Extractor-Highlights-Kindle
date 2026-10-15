@@ -17,7 +17,9 @@ Extensión de Chrome que sincroniza todos tus subrayados y notas de Kindle desde
    - Exportar a Word (`.docx`).
    - Cambiar el título o la portada. Estos cambios se conservan aunque vuelvas a sincronizar.
 
-Sincroniza siempre que quieras: los libros se identifican por su ASIN, así que nunca se duplican. Si borras o editas algo en el Kindle, el cambio se refleja aquí.
+Sincroniza siempre que quieras: los libros se identifican por su ASIN, así que nunca se duplican.
+
+La sincronización es **incremental**: Amazon indica la fecha de la última anotación de cada libro y solo se descargan los libros que han cambiado. Si borras subrayados en el Kindle y no ves el cambio, usa **Forzar sincronización completa** en el menú de la extensión.
 
 ## Copia de seguridad y migración
 

@@ -574,19 +574,25 @@
     }
   }
 
-  function renderSyncStatus(s) {
+  /* La barra solo se ve mientras se sincroniza y unos segundos después del resultado.
+     Al abrir la página no se muestra el resultado de una sincronización anterior. */
+  let syncBarTimer = null;
+
+  function renderSyncStatus(s, { initial = false } = {}) {
     const bar = $('syncBar');
+    clearTimeout(syncBarTimer);
     const stale = s && s.state === 'running' && Date.now() - (s.at || 0) > 10 * 60 * 1000;
-    if (!s || stale) {
+    if (!s || stale || (initial && s.state !== 'running')) {
       bar.className = 'sync-bar';
       $('btnSync').disabled = false;
       return;
     }
     bar.className = 'sync-bar ' + s.state;
-    bar.textContent = s.state === 'done'
-      ? `${s.message.replace(/^Kindle Highlights: /, '')} · ${new Date(s.at).toLocaleString()}`
-      : s.message.replace(/^Kindle Highlights: /, '');
+    bar.textContent = s.message.replace(/^Kindle Highlights: /, '');
     $('btnSync').disabled = s.state === 'running';
+    if (s.state !== 'running') {
+      syncBarTimer = setTimeout(() => { bar.className = 'sync-bar'; }, s.state === 'error' ? 10000 : 5000);
+    }
   }
 
   /* ── Tema ── */
@@ -684,7 +690,7 @@
     bindEvents();
     await reload();
     renderLibrary();
-    try { renderSyncStatus(await store.getStatus()); } catch (e) {}
+    try { renderSyncStatus(await store.getStatus(), { initial: true }); } catch (e) {}
   }
 
   init();

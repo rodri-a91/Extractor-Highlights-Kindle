@@ -38,7 +38,8 @@ var KH = globalThis.KH || (globalThis.KH = {});
         asin: el.id,
         title: txt(el.querySelector(SEL.libraryTitle)),
         author: cleanAuthor(txt(el.querySelector(SEL.libraryAuthor))),
-        coverUrl: bigCover(el.querySelector(SEL.libraryCover)?.getAttribute('src'))
+        coverUrl: bigCover(el.querySelector(SEL.libraryCover)?.getAttribute('src')),
+        annotatedDate: el.querySelector(SEL.libraryDate)?.value || null
       }))
       .filter(b => b.asin);
   }

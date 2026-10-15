@@ -43,8 +43,10 @@ var KH = globalThis.KH || (globalThis.KH = {});
   }
 
   /** Amazon manda en los datos; las ediciones del usuario (custom) se conservan siempre. */
-  async function saveSyncedBook({ asin, title, author, coverUrl, annotations }) {
-    const existing = await getBook(asin);
+  async function saveSyncedBook({ asin, title, author, coverUrl, annotations, annotatedDate = null }, existing) {
+    if (existing === undefined) existing = await getBook(asin);
+    const now = Date.now();
+    const sameDate = existing && annotatedDate && existing.annotatedDate === annotatedDate;
     await putBook({
       id: asin,
       source: 'amazon',
@@ -53,7 +55,10 @@ var KH = globalThis.KH || (globalThis.KH = {});
       author,
       coverUrl,
       annotations,
-      lastSyncedAt: Date.now(),
+      annotatedDate,
+      // Cuándo vimos esta fecha por primera vez (sirve para saber si el libro ya está "asentado")
+      annotatedDateSeenAt: sameDate && existing.annotatedDateSeenAt ? existing.annotatedDateSeenAt : now,
+      lastSyncedAt: now,
       custom: (existing && existing.custom) || {}
     });
   }
