@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kindle Highlights</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="library.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Site header ── -->
+  <header class="site-header">
+    <div class="site-title">Kindle <span>Highlights</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn-theme" id="themeToggle" title="Cambiar modo día/noche">☀️</button>
+      <div class="header-actions" id="headerActions">
+        <button class="btn-sm" id="btnShowBackup">⇅ Copia de seguridad</button>
+        <button class="btn-sm btn-primary" id="btnSync">↻ Sincronizar</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="sync-bar" id="syncBar"></div>
+
+  <!-- ══════════════════════════════
+       VIEW: Library
+  ══════════════════════════════ -->
+  <div class="view active" id="libView">
+    <div class="lib-toolbar">
+      <span class="lib-count" id="libCount"></span>
+      <div class="view-toggle">
+        <button id="btnGallery" class="active" title="Galería">⊞</button>
+        <button id="btnList" title="Lista">≡</button>
+      </div>
+    </div>
+    <div id="libraryGrid"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Book detail
+  ══════════════════════════════ -->
+  <div class="view" id="bookView">
+    <div class="back-row">
+      <button class="js-back">← Mi biblioteca</button>
+    </div>
+    <div class="book-view-header">
+      <div class="title-row">
+        <div class="book-view-title" id="bookViewTitle"></div>
+        <button class="btn-sm btn-edit-title" id="btnEditTitle">Editar</button>
+      </div>
+      <div class="title-edit-form" id="titleEditForm">
+        <input type="text" id="titleEditInput" placeholder="Título del libro (vacío = título original)">
+        <button class="btn-primary btn-sm" id="btnSaveTitle">Guardar</button>
+        <button class="btn-sm" id="btnCancelTitle">Cancelar</button>
+      </div>
+      <div class="book-view-author" id="bookViewAuthor"></div>
+      <div class="book-view-meta" id="bookViewMeta"></div>
+    </div>
+
+    <div class="legacy-banner" id="legacyBanner" hidden>
+      <span id="legacyBannerText"></span>
+      <button class="btn-sm" id="btnOpenSynced">Ver versión sincronizada</button>
+      <button class="btn-sm btn-danger" id="btnDeleteLegacy">Eliminar copia importada</button>
+    </div>
+
+    <!-- Cover edit panel -->
+    <div class="cover-edit-panel" id="coverEditPanel">
+      <h4>Cambiar portada</h4>
+      <div class="cover-tabs">
+        <button class="cover-tab active" data-tab="Url">URL</button>
+        <button class="cover-tab" data-tab="File">Archivo local</button>
+      </div>
+
+      <div class="cover-tab-content active" id="coverTabUrl">
+        <div class="cover-url-row">
+          <input type="text" id="coverUrlInput" placeholder="https://ejemplo.com/portada.jpg">
+          <img id="coverUrlPreview" class="cover-preview" alt="Vista previa">
+        </div>
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" id="btnSaveCoverUrl">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset js-reset-cover">Restaurar portada original</button>
+          <button class="btn-sm js-close-cover">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="cover-tab-content" id="coverTabFile">
+        <label class="cover-upload-label" for="coverFileInput">
+          <span>📁</span> Seleccionar imagen
+        </label>
+        <input type="file" id="coverFileInput" accept="image/*">
+        <img id="coverFilePreview" class="cover-preview" alt="Vista previa">
+        <div class="cover-edit-actions">
+          <button class="btn-primary btn-sm" id="btnSaveCoverFile">Guardar portada</button>
+          <button class="btn-sm btn-cover-reset js-reset-cover">Restaurar portada original</button>
+          <button class="btn-sm js-close-cover">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="book-actions">
+      <button id="btnCopy">Copiar todo</button>
+      <button id="btnWord">Exportar Word</button>
+      <button id="btnCover">Cambiar portada</button>
+      <button class="btn-danger" id="btnDelete">Eliminar libro</button>
+    </div>
+    <div class="highlights-list" id="highlightsList"></div>
+  </div>
+
+  <!-- ══════════════════════════════
+       VIEW: Backup
+  ══════════════════════════════ -->
+  <div class="view" id="backupView">
+    <div class="back-row">
+      <button class="js-back">← Volver</button>
+      <h2>Copia de seguridad</h2>
+    </div>
+
+    <div class="backup-section">
+      <h3>Exportar biblioteca</h3>
+      <p class="backup-desc">Descarga un archivo JSON con todos tus libros, highlights, notas y personalizaciones (títulos y portadas).</p>
+      <div class="backup-row">
+        <button class="btn-primary" id="btnExportJson">Descargar kindle-biblioteca.json</button>
+      </div>
+      <div id="exportStatus" class="status"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="backup-section">
+      <h3>Importar biblioteca</h3>
+      <p class="backup-desc">Carga un JSON exportado desde esta extensión o desde la versión web antigua. Los libros de la versión antigua aparecen marcados como <span class="badge-legacy">importado</span>; cuando sincronices el mismo libro desde Amazon podrás eliminar la copia antigua.</p>
+      <div class="backup-row">
+        <label class="file-label btn-sm" for="jsonFileInput">Seleccionar archivo JSON</label>
+        <input type="file" id="jsonFileInput" accept=".json,application/json">
+      </div>
+      <div id="restoreStatus" class="status"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="../shared/storage.js"></script>
+<script src="../vendor/docx.umd.js"></script>
+<script src="library.js"></script>
+</body>
+</html>
