@@ -616,6 +616,7 @@ textarea { resize: vertical; height: 130px; line-height: 1.5; }
   gap: 8px;
   margin-bottom: 28px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .highlights-list {

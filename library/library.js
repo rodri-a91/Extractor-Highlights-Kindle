@@ -27,7 +27,15 @@
 
   const plural = (n, s, p = s + 's') => `${n} ${n === 1 ? s : p}`;
   const findBook = id => books.find(b => b.id === id) || null;
-  const displayTitle = b => (b.custom && b.custom.title) || b.title || 'Libro sin título';
+  /** Amazon añade colección y edición al final del título: "Título (Colección) (Spanish Edition)" → "Título".
+      Solo se quitan los paréntesis/corchetes finales; si el título fuera solo eso, se deja tal cual. */
+  const cleanTitle = t => (t || '').replace(/(\s*(\([^()]*\)|\[[^\[\]]*\]))+\s*$/, '').trim() || t;
+  const displayTitle = b => (b.custom && b.custom.title) || cleanTitle(b.title) || 'Libro sin título';
+  /** El notebook de Amazon une los autores con "and" aunque la página esté en español. */
+  const displayAuthor = b => {
+    const names = (b.author || '').split(/\s*,\s*(?:and\s+)?|\s+and\s+/i).filter(Boolean);
+    return names.length > 1 ? names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1] : names.join('');
+  };
   const coverOf = b => (b.custom && b.custom.coverUrl) || b.coverUrl || null;
   const annotationsOf = b => b.annotations || [];
 
@@ -120,10 +128,18 @@
     renderLibrary();
   }
 
+  /** Las portadas originales de Amazon pueden medir miles de píxeles y, reducidas a tamaño de
+      tarjeta, el navegador las muestra con dientes de sierra. Para la biblioteca se pide a Amazon
+      una versión de 800 px de alto (nítida en pantallas de alta densidad). */
+  const libraryCoverUrl = url =>
+    /^https:\/\/[^/]*(media-amazon|ssl-images-amazon)\.com\/images\/I\/[^/.]+\.(jpe?g|png)$/i.test(url)
+      ? url.replace(/\.(jpe?g|png)$/i, '._SY800_.$1')
+      : url;
+
   function coverImg(b, alt) {
     const url = coverOf(b);
     if (!url) return null;
-    const img = el('img', { src: url, alt: alt || '', referrerpolicy: 'no-referrer' });
+    const img = el('img', { src: libraryCoverUrl(url), alt: alt || '', referrerpolicy: 'no-referrer' });
     img.addEventListener('load', () => img.classList.add('loaded'));
     img.addEventListener('error', () => {
       img.style.display = 'none';
@@ -193,7 +209,7 @@
     if (!b) { showLibrary(); return; }
 
     $('bookViewTitle').textContent = displayTitle(b);
-    $('bookViewAuthor').textContent = b.author || '';
+    $('bookViewAuthor').textContent = displayAuthor(b);
     let meta = countsText(b);
     if (b.lastSyncedAt) meta += ' · sincronizado ' + new Date(b.lastSyncedAt).toLocaleString();
     $('bookViewMeta').textContent = meta;
@@ -229,7 +245,7 @@
     const b = findBook(currentId);
     const value = $('titleEditInput').value.trim();
     const custom = { ...(b.custom || {}) };
-    if (!value || value === b.title) delete custom.title;
+    if (!value || value === b.title || value === cleanTitle(b.title)) delete custom.title;
     else custom.title = value;
     if (await safeWrite(() => store.putBook({ ...b, custom }))) cancelEditTitle();
   }
@@ -371,9 +387,9 @@
       })
     ];
 
-    if (b.author) {
+    if (displayAuthor(b)) {
       children.push(new Paragraph({
-        children: [new TextRun({ text: b.author, font: 'Georgia', size: 28, italics: true, color: MUTED })],
+        children: [new TextRun({ text: displayAuthor(b), font: 'Georgia', size: 28, italics: true, color: MUTED })],
         spacing: { before: 120, after: 0 }
       }));
     }
