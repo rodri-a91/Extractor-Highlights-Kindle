@@ -367,100 +367,106 @@
     if (typeof docx === 'undefined') { toast('La librería de Word no se ha cargado.'); return; }
 
     const {
-      Document, Packer, Paragraph, TextRun,
-      AlignmentType, BorderStyle, PageNumber, Footer
+      Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, PageNumber, Footer,
+      Table, TableRow, TableCell, WidthType, ShadingType
     } = docx;
 
-    const AMBER = 'C8691A';
-    const INK   = '1A1410';
-    const MUTED = '8A7F72';
-    const AGED  = 'E8E0D0';
-    const COLORS = { yellow: 'E2B93B', blue: '4A90D9', pink: 'D9669B', orange: 'E8892F' };
+    // Estilo de libro: Garamond, tinta casi negra, gris cálido para lo secundario y sin colores
+    const FONT  = 'Garamond';
+    const INK   = '222222';
+    const MUTED = '7A7A7A';
+    const RULE  = 'BFBFBF';
+    const ZEBRA = 'F4F2EE';   // fondo de las filas alternas, como en la biblioteca
+    const pt = n => n * 2;   // docx mide el tamaño de letra en medios puntos
 
     const title = displayTitle(b);
+    const author = displayAuthor(b);
+    const run = (text, opts = {}) => new TextRun({ text, font: FONT, color: INK, ...opts });
+
     const children = [
       new Paragraph({
-        children: [new TextRun({ text: title, font: 'Georgia', size: 56, bold: true, color: INK })],
-        alignment: AlignmentType.LEFT,
-        spacing: { before: 0, after: 200 },
-        border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: AMBER, space: 8 } }
+        children: [run(title, { size: pt(18) })],
+        spacing: { after: author ? 80 : 160, line: 276 }
       })
     ];
-
-    if (displayAuthor(b)) {
+    if (author) {
       children.push(new Paragraph({
-        children: [new TextRun({ text: displayAuthor(b), font: 'Georgia', size: 28, italics: true, color: MUTED })],
-        spacing: { before: 120, after: 0 }
+        children: [run(author, { size: pt(13), italics: true, color: MUTED })],
+        spacing: { after: 160 }
       }));
     }
-
     children.push(new Paragraph({
-      children: [new TextRun({ text: countsText(b), font: 'Courier New', size: 20, color: MUTED })],
-      alignment: AlignmentType.LEFT,
-      spacing: { before: 240, after: 800 }
+      children: [run(countsText(b), { size: pt(9.5), smallCaps: true, color: MUTED, characterSpacing: 10 })],
+      spacing: { after: 560 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: RULE, space: 12 } }
     }));
 
-    annotationsOf(b).forEach((a, i) => {
-      const isEven = i % 2 === 0;
-      const border = {
-        left: {
-          style: BorderStyle.SINGLE,
-          size: a.color ? 12 : (isEven ? 12 : 4),
-          color: COLORS[a.color] || (isEven ? AMBER : AGED),
-          space: 16
-        }
-      };
-      const indent = { left: 480, right: 240 };
+    // Cada subrayado es una fila de una tabla sin bordes: así el fondo alterno lo cubre entero
+    // (texto, nota y referencia) y la fila no se parte entre dos páginas
+    const rows = annotationsOf(b).map((a, i) => {
       const loc = locationText(a);
-
+      const paras = [];
       if (a.text) {
-        children.push(new Paragraph({
-          children: [new TextRun({ text: a.text, font: 'Georgia', size: 26, color: INK })],
+        paras.push(new Paragraph({
+          children: [run(a.text, { size: pt(12) })],
           alignment: AlignmentType.JUSTIFIED,
-          spacing: { before: 0, after: (a.note || loc) ? 80 : 320, line: 360, lineRule: 'auto' },
-          indent, border
+          spacing: { after: 80, line: 300 }
         }));
       }
       if (a.note) {
-        children.push(new Paragraph({
+        paras.push(new Paragraph({
           children: [
-            new TextRun({ text: 'NOTA  ', font: 'Courier New', size: 16, bold: true, color: AMBER }),
-            new TextRun({ text: a.note, font: 'Georgia', size: 24, italics: true, color: INK })
+            run('Nota. ', { size: pt(11), smallCaps: true, color: MUTED }),
+            run(a.note, { size: pt(11), italics: true })
           ],
-          spacing: { before: 0, after: loc ? 80 : 320, line: 320, lineRule: 'auto' },
-          indent, border: a.text ? undefined : border
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { left: a.text ? 360 : 0 },
+          spacing: { after: 80, line: 288 }
         }));
       }
       if (loc) {
-        children.push(new Paragraph({
-          children: [new TextRun({ text: loc, font: 'Courier New', size: 16, color: MUTED })],
-          spacing: { before: 0, after: 320 },
-          indent
+        paras.push(new Paragraph({
+          children: [run(loc, { size: pt(9), smallCaps: true, color: MUTED })],
+          alignment: AlignmentType.RIGHT,
+          spacing: { after: 80 }
         }));
       }
+      return new TableRow({
+        cantSplit: true,
+        children: [new TableCell({
+          children: paras,
+          shading: i % 2 ? { type: ShadingType.CLEAR, color: 'auto', fill: ZEBRA } : undefined,
+          margins: { top: 200, bottom: 120, left: 240, right: 240 }
+        })]
+      });
     });
 
+    const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+    if (rows.length) {
+      children.push(new Table({
+        rows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none }
+      }));
+    }
+
     const doc = new Document({
-      styles: { default: { document: { run: { font: 'Georgia', size: 26, color: INK } } } },
+      creator: author || undefined,
+      title,
+      styles: { default: { document: { run: { font: FONT, size: pt(12), color: INK } } } },
       sections: [{
         properties: {
           page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 1700, right: 1440, bottom: 1700, left: 1700 }
+            size: { width: 11906, height: 16838 },                               // A4
+            margin: { top: 1701, right: 1701, bottom: 1701, left: 1701, footer: 850 }   // 3 cm
           }
         },
         footers: {
           default: new Footer({
-            children: [
-              new Paragraph({
-                children: [
-                  new TextRun({ text: title + '  ·  ', font: 'Courier New', size: 16, color: MUTED }),
-                  new TextRun({ children: [PageNumber.CURRENT], font: 'Courier New', size: 16, color: MUTED })
-                ],
-                alignment: AlignmentType.CENTER,
-                border: { top: { style: BorderStyle.SINGLE, size: 4, color: AGED, space: 8 } }
-              })
-            ]
+            children: [new Paragraph({
+              children: [new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: pt(9.5), color: MUTED })],
+              alignment: AlignmentType.CENTER
+            })]
           })
         },
         children
