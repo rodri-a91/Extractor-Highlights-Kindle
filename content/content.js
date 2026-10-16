@@ -20,14 +20,25 @@ var KH = globalThis.KH || (globalThis.KH = {});
      Amazon da la fecha (por día) de la última anotación de cada libro. Si no ha cambiado
      y la última descarga se hizo un día posterior a cuando vimos esa fecha por primera vez,
      no puede haber anotaciones nuevas. Si se descargó el mismo día, pudo haber más
-     subrayados después ese mismo día, así que se vuelve a descargar. */
+     subrayados después ese mismo día, así que se vuelve a descargar.
+     Excepción: si la fecha de Amazon no puede ser la del día de la descarga (no contiene
+     ese día del mes y ese año), ya estaba cerrada y no hace falta esa descarga extra. */
   const dayKey = ts => new Date(ts).toLocaleDateString('sv');   // "AAAA-MM-DD", comparable como texto
 
+  /** La fecha es texto localizado ("15 de octubre de 2026", "October 15, 2026", "2026年10月15日"…):
+      se comparan solo sus números, así que vale para cualquier idioma y ante la duda dice que sí. */
+  function couldBeDayOf(dateText, ts) {
+    const d = new Date(ts);
+    const nums = (dateText.match(/\d+/g) || []).map(Number);
+    return nums.includes(d.getDate()) && nums.includes(d.getFullYear());
+  }
+
   function isUnchanged(existing, b) {
-    return !!(existing && existing.source === 'amazon' &&
-      b.annotatedDate && existing.annotatedDate === b.annotatedDate &&
-      existing.annotatedDateSeenAt && existing.lastSyncedAt &&
-      dayKey(existing.lastSyncedAt) > dayKey(existing.annotatedDateSeenAt));
+    if (!(existing && existing.source === 'amazon' &&
+          b.annotatedDate && existing.annotatedDate === b.annotatedDate &&
+          existing.annotatedDateSeenAt && existing.lastSyncedAt)) return false;
+    return !couldBeDayOf(b.annotatedDate, existing.lastSyncedAt) ||
+      dayKey(existing.lastSyncedAt) > dayKey(existing.annotatedDateSeenAt);
   }
 
   /* ── Indicador flotante en la propia página ── */
