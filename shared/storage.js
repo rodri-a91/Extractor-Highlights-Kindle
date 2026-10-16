@@ -81,18 +81,9 @@ var KH = globalThis.KH || (globalThis.KH = {});
     await area().set({ [STATUS]: { ...status, at: Date.now() } });
   }
 
-  function normTitle(t) {
-    return (t || '')
-      .toLowerCase()
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/\(.*?\)|\[.*?\]/g, '')
-      .replace(/[^\p{L}\p{N}]+/gu, ' ')
-      .trim();
-  }
-
   KH.store = {
     INDEX, STATUS, bookKey,
     getIndex, getAllBooks, getBook, putBook, deleteBook,
-    saveSyncedBook, setOrder, getStatus, setStatus, normTitle
+    saveSyncedBook, setOrder, getStatus, setStatus
   };
 })();

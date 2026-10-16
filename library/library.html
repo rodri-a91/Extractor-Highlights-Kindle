@@ -17,7 +17,6 @@
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <button class="btn-theme" id="themeToggle" title="Cambiar modo día/noche">☀️</button>
       <div class="header-actions" id="headerActions">
-        <button class="btn-sm" id="btnShowBackup">⇅ Copia de seguridad</button>
         <button class="btn-sm btn-primary" id="btnSync">↻ Sincronizar</button>
       </div>
     </div>
@@ -37,6 +36,9 @@
       </div>
     </div>
     <div id="libraryGrid"></div>
+    <footer class="lib-footer">
+      <button class="link-btn" id="btnShowBackup">Copia de seguridad</button>
+    </footer>
   </div>
 
   <!-- ══════════════════════════════
@@ -58,12 +60,6 @@
       </div>
       <div class="book-view-author" id="bookViewAuthor"></div>
       <div class="book-view-meta" id="bookViewMeta"></div>
-    </div>
-
-    <div class="legacy-banner" id="legacyBanner" hidden>
-      <span id="legacyBannerText"></span>
-      <button class="btn-sm" id="btnOpenSynced">Ver versión sincronizada</button>
-      <button class="btn-sm btn-danger" id="btnDeleteLegacy">Eliminar copia importada</button>
     </div>
 
     <!-- Cover edit panel -->
@@ -131,7 +127,7 @@
 
     <div class="backup-section">
       <h3>Importar biblioteca</h3>
-      <p class="backup-desc">Carga un JSON exportado desde esta extensión o desde la versión web antigua. Los libros de la versión antigua aparecen marcados como <span class="badge-legacy">importado</span>; cuando sincronices el mismo libro desde Amazon podrás eliminar la copia antigua.</p>
+      <p class="backup-desc">Carga un JSON exportado desde esta extensión. Los libros que ya tengas se combinan: se conserva la sincronización más reciente y tus personalizaciones.</p>
       <div class="backup-row">
         <label class="file-label btn-sm" for="jsonFileInput">Seleccionar archivo JSON</label>
         <input type="file" id="jsonFileInput" accept=".json,application/json">

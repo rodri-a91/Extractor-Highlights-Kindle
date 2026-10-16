@@ -1,6 +1,6 @@
 # Kindle Highlights
 
-Extensión de Chrome que sincroniza todos tus subrayados y notas de Kindle desde la web de Amazon ([read.amazon.com/notebook](https://read.amazon.com/notebook)) con un clic, y te deja consultarlos, copiarlos y exportarlos a Word o JSON.
+Extensión de Chrome que sincroniza todos tus subrayados y notas de Kindle desde la web de Amazon ([read.amazon.com/notebook](https://read.amazon.com/notebook)) con un clic, y te deja consultarlos, copiarlos y exportarlos a Word.
 
 ## Instalación
 
@@ -21,9 +21,9 @@ Sincroniza siempre que quieras: los libros se identifican por su ASIN, así que 
 
 La sincronización es **incremental**: Amazon indica la fecha de la última anotación de cada libro y solo se descargan los libros que han cambiado. Si borras subrayados en el Kindle y no ves el cambio, usa **Forzar sincronización completa** en el menú de la extensión.
 
-## Copia de seguridad y migración
+## Copia de seguridad
 
-En **Copia de seguridad** puedes exportar/importar toda la biblioteca en JSON. También acepta el JSON de la antigua versión web: esos libros aparecen marcados como *importado* y, cuando sincronices el mismo libro desde Amazon, podrás eliminar la copia antigua.
+En **Copia de seguridad** (enlace al pie de la biblioteca) puedes exportar/importar toda la biblioteca en JSON, incluidos tus títulos y portadas personalizados y los libros que ya no estén en Amazon.
 
 ## Estructura
 

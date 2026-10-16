@@ -88,14 +88,6 @@
     catch (e) { books = []; toast('No se pudo leer la biblioteca: ' + (e?.message || e)); }
   }
 
-  /** Para un libro importado, busca su equivalente sincronizado desde Amazon (mismo título). */
-  function syncedTwinOf(b) {
-    if (b.source !== 'legacy') return null;
-    const t = store.normTitle(displayTitle(b));
-    return books.find(x => x.source === 'amazon' &&
-      (store.normTitle(x.title) === t || store.normTitle(displayTitle(x)) === t)) || null;
-  }
-
   /* ── Vistas ── */
 
   function switchView(id) {
@@ -141,11 +133,6 @@
     return img;
   }
 
-  function titleNode(b) {
-    return [displayTitle(b), b.source === 'legacy' ? ' ' : null,
-            b.source === 'legacy' ? el('span', { className: 'badge-legacy', text: 'importado' }) : null];
-  }
-
   function renderLibrary() {
     const container = $('libraryGrid');
     const n = books.length;
@@ -170,7 +157,7 @@
         container.append(el('div', { className: 'list-item', dataset: { id: b.id } },
           el('div', { className: 'list-cover' },
             img, el('div', { className: 'list-cover-ph', style: img ? 'display:none' : null, text: '📖' })),
-          el('div', { className: 'list-title' }, titleNode(b)),
+          el('div', { className: 'list-title' }, displayTitle(b)),
           el('div', { className: 'list-meta', text: countsText(b) }),
           el('div', { className: 'list-arrow', text: '›' })));
       }
@@ -184,7 +171,7 @@
             el('div', { className: 'book-cover-placeholder', style: img ? 'display:none' : null },
               el('span', { text: '📖' }), el('p', { text: displayTitle(b) }))),
           el('div', { className: 'book-card-info' },
-            el('div', { className: 'book-card-title' }, titleNode(b)),
+            el('div', { className: 'book-card-title' }, displayTitle(b)),
             el('div', { className: 'book-card-meta', text: countsText(b) }))));
       }
     }
@@ -209,16 +196,7 @@
     $('bookViewAuthor').textContent = b.author || '';
     let meta = countsText(b);
     if (b.lastSyncedAt) meta += ' · sincronizado ' + new Date(b.lastSyncedAt).toLocaleString();
-    if (b.source === 'legacy') meta += ' · importado de la versión web';
     $('bookViewMeta').textContent = meta;
-
-    const twin = syncedTwinOf(b);
-    $('legacyBanner').hidden = !twin;
-    if (twin) {
-      $('legacyBannerText').textContent =
-        `Este libro ya está sincronizado desde Amazon (${countsText(twin)}). Esta es la copia importada de la versión antigua.`;
-      $('btnOpenSynced').dataset.id = twin.id;
-    }
 
     const list = $('highlightsList');
     list.replaceChildren(...annotationsOf(b).map(a => {
@@ -354,13 +332,11 @@
     }
   }
 
-  async function deleteBook(id = currentId, ask = true) {
+  async function deleteBook(id = currentId) {
     const b = findBook(id);
     if (!b) return;
-    if (ask) {
-      const extra = b.source === 'amazon' ? '\n\nVolverá a aparecer la próxima vez que sincronices.' : '';
-      if (!confirm(`¿Eliminar "${displayTitle(b)}" y todos sus highlights?${extra}`)) return;
-    }
+    const extra = b.source === 'amazon' ? '\n\nVolverá a aparecer la próxima vez que sincronices.' : '';
+    if (!confirm(`¿Eliminar "${displayTitle(b)}" y todos sus highlights?${extra}`)) return;
     if (await safeWrite(() => store.deleteBook(id))) {
       books = books.filter(x => x.id !== id);
       showLibrary();
@@ -487,38 +463,12 @@
     setStatus('exportStatus', `Exportados ${plural(books.length, 'libro')}.`, 'ok');
   }
 
-  const normText = t => (t || '').toLowerCase().replace(/\s/g, '');
-
-  /** Formato de la versión web antigua: { slug: { title, highlights: [string], coverUrl } } */
-  function legacyToBooks(data) {
-    return Object.entries(data)
-      .filter(([, b]) => b && b.title && Array.isArray(b.highlights))
-      .map(([slug, b]) => ({
-        id: 'legacy:' + slug,
-        source: 'legacy',
-        title: String(b.title),
-        author: '',
-        coverUrl: typeof b.coverUrl === 'string' ? b.coverUrl : null,
-        custom: {},
-        annotations: b.highlights.filter(h => typeof h === 'string' && h.trim()).map((h, i) => ({
-          id: `legacy-${slug}-${i}`, text: h, note: '', color: null, location: null, page: null
-        }))
-      }));
-  }
-
   function mergeImported(existing, incoming) {
     if (!existing) return { book: incoming, added: incoming.annotations.length, isNew: true };
 
     const custom = { ...(incoming.custom || {}), ...(existing.custom || {}) };
 
-    if (existing.source === 'legacy') {
-      // Igual que antes: añadir solo los highlights que falten
-      const seen = new Set(existing.annotations.map(a => normText(a.text)));
-      const news = incoming.annotations.filter(a => !seen.has(normText(a.text)));
-      return { book: { ...existing, custom, annotations: [...existing.annotations, ...news] }, added: news.length, isNew: false };
-    }
-
-    // Libros de Amazon: se quedan las anotaciones de la sincronización más reciente
+    // Se quedan las anotaciones de la sincronización más reciente
     if ((incoming.lastSyncedAt || 0) > (existing.lastSyncedAt || 0)) {
       return { book: { ...incoming, custom }, added: Math.max(0, incoming.annotations.length - existing.annotations.length), isNew: false };
     }
@@ -536,11 +486,10 @@
     try {
       const data = JSON.parse(await file.text());
       if (data && data.format === 'kindle-highlights' && Array.isArray(data.books)) incoming = data.books.filter(isValidBook);
-      else if (data && typeof data === 'object' && !Array.isArray(data)) incoming = legacyToBooks(data);
       else throw new Error();
       if (!incoming.length) throw new Error();
     } catch (e) {
-      setStatus('restoreStatus', 'Archivo no válido. Usa un JSON exportado desde esta extensión o desde la versión web.', 'err');
+      setStatus('restoreStatus', 'Archivo no válido. Usa un JSON exportado desde esta extensión.', 'err');
       return;
     }
 
@@ -651,11 +600,6 @@
     $('btnCopy').addEventListener('click', copyHighlights);
     $('btnWord').addEventListener('click', () => exportWord().catch(e => toast('Error al generar el Word: ' + e.message)));
     $('btnDelete').addEventListener('click', () => deleteBook());
-
-    $('btnOpenSynced').addEventListener('click', e => openBook(e.currentTarget.dataset.id));
-    $('btnDeleteLegacy').addEventListener('click', () => {
-      if (confirm('¿Eliminar la copia importada? La versión sincronizada desde Amazon no se toca.')) deleteBook(currentId, false);
-    });
 
     $('btnExportJson').addEventListener('click', exportLibrary);
     $('jsonFileInput').addEventListener('change', importLibrary);
